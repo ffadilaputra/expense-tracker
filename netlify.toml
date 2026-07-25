@@ -1,0 +1,90 @@
+# Netlify build + hosting config for Oma Recipe.
+#
+# Deploys are driven by Netlify's Git integration: every push to `main`
+# publishes production, and every pull request gets its own Deploy Preview
+# URL. The GitHub Actions workflow in .github/workflows/ci.yml only runs
+# checks - it deliberately does not deploy, so a build never happens twice
+# for the same commit.
+
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+[build.environment]
+  # Pinned so CI, Netlify, and local dev don't drift onto different majors.
+  NODE_VERSION = "22"
+  PNPM_VERSION = "11"
+
+# Server side of id-based recipe sharing. Runs on /s/* (links are /s/<id>),
+# fetches the recipe from the sheet's read-only `shared` endpoint, injects
+# dynamic og:title/description/image, and embeds the recipe for the app to
+# render. See netlify/edge-functions/og-tags.ts.
+#
+# REQUIRED environment variable (Site settings > Environment variables):
+#   SHARE_APP_URL = your Apps Script Web App /exec URL
+# Without it, share links resolve to the generic card and the app shows
+# "recipe is private or no longer shared". The URL stays in the edge runtime
+# and is never sent to the browser.
+[[edge_functions]]
+  path = "/s/*"
+  function = "og-tags"
+
+# The app is a single-page app served entirely from index.html. Without this
+# rewrite, refreshing on any path other than "/" - or opening a Deploy
+# Preview deep link - returns Netlify's 404 page instead of the app.
+# status 200 (rewrite, not redirect) keeps the URL in the address bar.
+# /s/* also lands here (via the edge function's next()) so the SPA boots and
+# reads the recipe from the fragment.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# --- Caching -----------------------------------------------------------
+# Vite fingerprints everything in /assets (index-BXYEtJ8N.js and friends),
+# so those files are immutable: a change produces a new filename, never new
+# content at the same URL. Everything else must revalidate.
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# The service worker must NEVER be served stale. public/sw.js is
+# network-first with a hardcoded CACHE_NAME ('oma-recipe-shell-v1'), so a
+# browser holding a cached copy of sw.js keeps running the old worker and
+# can serve a previous build's shell indefinitely - deploys would appear to
+# do nothing. max-age=0 forces a revalidation on every load, which is how
+# the update-on-reload cycle stays reliable.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# index.html is the entry point that references the hashed asset names; if
+# it is cached, users get old asset URLs and never see a new deploy.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/manifest+json"
+
+# --- Security headers --------------------------------------------------
+# Note there is intentionally no Content-Security-Policy here. The app
+# submits recipes to a user-supplied Apps Script URL entered at runtime, so
+# the set of allowed connect-src origins isn't known at build time. Camera
+# capture also inlines photos as data: URIs into img-src. A CSP strict
+# enough to be worth adding would need both accounted for.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # The camera is used by CameraCapture for recipe photos; everything else
+    # the app never touches.
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=()"
