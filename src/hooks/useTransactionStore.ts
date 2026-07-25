@@ -85,8 +85,6 @@ export default function useTransactionStore(): TransactionStore {
     (oldId: string, created: Transaction) => {
       const next = txnsRef.current.map((t) => (t.id === oldId ? created : t));
       persist(next);
-      const queue = loadQueue().map((entry) => (entry.id === oldId ? { ...entry, id: created.id } : entry));
-      saveQueue(queue);
     },
     [persist]
   );
@@ -116,9 +114,10 @@ export default function useTransactionStore(): TransactionStore {
           } else if (entry.type === 'delete') {
             if (!isLocalId(entry.id)) await sheetApi.deleteTransaction(entry.id);
           }
-          queue = queue.slice(1);
-          saveQueue(queue);
-          setPendingCount(queue.length);
+          const remaining = loadQueue().filter((e) => e !== entry);
+          saveQueue(remaining);
+          setPendingCount(remaining.length);
+          queue = remaining;
         } catch {
           break; // still offline / server error — retry later
         }
