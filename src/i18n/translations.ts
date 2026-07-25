@@ -1,0 +1,160 @@
+// One plain object per language — no i18n library. TypeScript checks every
+// t('key') against `en`, and `id` must satisfy the same key set (enforced by
+// the `Record<TranslationKey, string>` annotation), so a missing translation
+// is a compile error.
+
+export const en = {
+  appTitle: 'Uang',
+  loginTagline: 'Track income and expenses in your own Google Sheet — still works offline.',
+  changeSheetLabel: 'Switch Google Sheet',
+  changeSheetConfirm: 'Switch Google Sheet? The data cached on this device will be cleared.',
+  dismissNotification: 'Dismiss notification',
+  loadingGeneric: 'Loading...',
+  loadingForm: 'Loading form...',
+
+  // Summary
+  balanceLabel: 'Balance',
+  monthIncomeLabel: 'Income this month',
+  monthExpenseLabel: 'Expense this month',
+
+  // Heatmap
+  heatmapTitle: 'Spending',
+  heatmapLess: 'less',
+  heatmapMore: 'more',
+  heatmapDayTotal: '{date}: {amount}',
+  heatmapClearFilter: 'Show all days',
+
+  // List
+  emptyTransactions: 'No transactions yet. Tap + to add your first one.',
+  emptyDayFiltered: 'No transactions on this day.',
+  relativeToday: 'Today',
+  relativeYesterday: 'Yesterday',
+  pendingTag: 'Not synced',
+  deleteTransactionConfirm: 'Delete this transaction?',
+
+  // Form
+  addTitle: 'Add transaction',
+  editTitle: 'Edit transaction',
+  typeIncome: 'Income',
+  typeExpense: 'Expense',
+  fieldAmount: 'Amount',
+  amountPlaceholder: '0',
+  fieldCategory: 'Category',
+  categoryPlaceholder: 'e.g. Food, Salary',
+  fieldDate: 'Date',
+  fieldNote: 'Note (optional)',
+  notePlaceholder: 'e.g. Lunch with team',
+  saveBtn: 'Save',
+  savingBtn: 'Saving...',
+  updateBtn: 'Update',
+  cancelBtn: 'Cancel',
+  deleteBtn: 'Delete',
+  addFabLabel: 'Add transaction',
+
+  // Sync
+  syncOnline: 'Online',
+  syncOffline: 'Offline',
+  syncPendingChanges: '{count} pending',
+  syncNowBtn: 'Sync now',
+  syncSyncing: 'Syncing...',
+
+  // Install prompt
+  installPromptText: 'Add Uang to your home screen',
+  installBtn: 'Install',
+  installDismiss: 'Not now',
+
+  // Login
+  webAppUrlLabel: 'Google Apps Script Web App URL',
+  connectBtn: 'Connect',
+  connecting: 'Connecting...',
+  invalidUrlError: 'That does not look like an Apps Script Web App URL (should end in /exec).',
+  helpSummary: 'How do I get this URL?',
+  helpStep1: 'Create a Google Sheet you will own.',
+  helpStep2: 'Open Extensions → Apps Script and paste the Code.gs from this project.',
+  helpStep3: 'Deploy → New deployment → Web app, access "Anyone".',
+  helpStep4: 'Copy the Web App URL (ends in /exec) and paste it above.',
+
+  // Errors (used outside React by sheetApi)
+  errNotConnected: 'Not connected to a Google Sheet yet.',
+  errFetchFailed: 'Could not load transactions.',
+  errActionFailed: 'The "{action}" action failed.',
+  errVerifyNetwork: 'Could not reach that URL. Check your connection and the URL.',
+  errVerifyStatus: 'The URL responded with status {status}.',
+  errVerifyInvalid: 'That URL is not a valid deployment for this app.'
+} as const;
+
+export type TranslationKey = keyof typeof en;
+
+export const id: Record<TranslationKey, string> = {
+  appTitle: 'Uang',
+  loginTagline: 'Catat pemasukan dan pengeluaran di Google Sheet milikmu — tetap jalan offline.',
+  changeSheetLabel: 'Ganti Google Sheet',
+  changeSheetConfirm: 'Ganti Google Sheet? Data yang tersimpan di perangkat ini akan dihapus.',
+  dismissNotification: 'Tutup notifikasi',
+  loadingGeneric: 'Memuat...',
+  loadingForm: 'Memuat formulir...',
+
+  balanceLabel: 'Saldo',
+  monthIncomeLabel: 'Pemasukan bulan ini',
+  monthExpenseLabel: 'Pengeluaran bulan ini',
+
+  heatmapTitle: 'Pengeluaran',
+  heatmapLess: 'sedikit',
+  heatmapMore: 'banyak',
+  heatmapDayTotal: '{date}: {amount}',
+  heatmapClearFilter: 'Tampilkan semua hari',
+
+  emptyTransactions: 'Belum ada transaksi. Ketuk + untuk menambahkan.',
+  emptyDayFiltered: 'Tidak ada transaksi pada hari ini.',
+  relativeToday: 'Hari ini',
+  relativeYesterday: 'Kemarin',
+  pendingTag: 'Belum tersinkron',
+  deleteTransactionConfirm: 'Hapus transaksi ini?',
+
+  addTitle: 'Tambah transaksi',
+  editTitle: 'Ubah transaksi',
+  typeIncome: 'Pemasukan',
+  typeExpense: 'Pengeluaran',
+  fieldAmount: 'Jumlah',
+  amountPlaceholder: '0',
+  fieldCategory: 'Kategori',
+  categoryPlaceholder: 'mis. Makan, Gaji',
+  fieldDate: 'Tanggal',
+  fieldNote: 'Catatan (opsional)',
+  notePlaceholder: 'mis. Makan siang bersama tim',
+  saveBtn: 'Simpan',
+  savingBtn: 'Menyimpan...',
+  updateBtn: 'Perbarui',
+  cancelBtn: 'Batal',
+  deleteBtn: 'Hapus',
+  addFabLabel: 'Tambah transaksi',
+
+  syncOnline: 'Online',
+  syncOffline: 'Offline',
+  syncPendingChanges: '{count} menunggu',
+  syncNowBtn: 'Sinkron sekarang',
+  syncSyncing: 'Menyinkronkan...',
+
+  installPromptText: 'Tambahkan Uang ke layar utama',
+  installBtn: 'Pasang',
+  installDismiss: 'Nanti',
+
+  webAppUrlLabel: 'URL Web App Google Apps Script',
+  connectBtn: 'Hubungkan',
+  connecting: 'Menghubungkan...',
+  invalidUrlError: 'Itu tidak tampak seperti URL Web App Apps Script (harus diakhiri /exec).',
+  helpSummary: 'Bagaimana cara mendapatkan URL ini?',
+  helpStep1: 'Buat Google Sheet milikmu sendiri.',
+  helpStep2: 'Buka Ekstensi → Apps Script dan tempel Code.gs dari proyek ini.',
+  helpStep3: 'Deploy → New deployment → Web app, akses "Anyone".',
+  helpStep4: 'Salin URL Web App (diakhiri /exec) dan tempel di atas.',
+
+  errNotConnected: 'Belum terhubung ke Google Sheet.',
+  errFetchFailed: 'Tidak dapat memuat transaksi.',
+  errActionFailed: 'Aksi "{action}" gagal.',
+  errVerifyNetwork: 'Tidak dapat menjangkau URL itu. Periksa koneksi dan URL-nya.',
+  errVerifyStatus: 'URL merespons dengan status {status}.',
+  errVerifyInvalid: 'URL itu bukan deployment yang valid untuk aplikasi ini.'
+};
+
+export const translations = { en, id };
