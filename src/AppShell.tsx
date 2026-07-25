@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import useTransactionStore from './hooks/useTransactionStore';
 import usePullToRefresh from './hooks/usePullToRefresh';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
@@ -78,10 +78,16 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     }
   }, [editor, deleteTransaction, t]);
 
-  if (error) {
-    toast.show({ message: error, tone: 'error', sticky: true });
-    clearError();
-  }
+  // Surface store errors as a toast from an effect, not during render:
+  // toast.show() updates ToastProvider's state, and mutating another
+  // component's state while rendering AppShell violates React's render-purity
+  // rule (dev warning under StrictMode, fragile under concurrent rendering).
+  useEffect(() => {
+    if (error) {
+      toast.show({ message: error, tone: 'error', sticky: true });
+      clearError();
+    }
+  }, [error, toast, clearError]);
 
   const initialValue: TransactionFormData | undefined =
     editor && editor !== 'new'
