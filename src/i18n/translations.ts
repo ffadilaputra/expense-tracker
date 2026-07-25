@@ -62,6 +62,15 @@ export const en = {
   installPromptText: 'Add Uang to your home screen',
   installBtn: 'Install',
   installDismiss: 'Not now',
+  iosInstallText:
+    'Add {appName} to your Home Screen: tap the Share button, then choose "Add to Home Screen".',
+  androidInstallText: 'Install {appName} on your home screen to open it directly, even offline.',
+  closeBtn: 'Close',
+
+  // Pull to refresh
+  pullToRefresh: 'Pull to refresh',
+  releaseToRefresh: 'Release to refresh',
+  refreshing: 'Refreshing...',
 
   // Login
   webAppUrlLabel: 'Google Apps Script Web App URL',
@@ -138,6 +147,15 @@ export const id: Record<TranslationKey, string> = {
   installPromptText: 'Tambahkan Uang ke layar utama',
   installBtn: 'Pasang',
   installDismiss: 'Nanti',
+  iosInstallText:
+    'Tambahkan {appName} ke Layar Utama: ketuk tombol Bagikan, lalu pilih "Add to Home Screen".',
+  androidInstallText: 'Pasang {appName} di layar utama supaya bisa dibuka langsung, termasuk saat offline.',
+  closeBtn: 'Tutup',
+
+  // Pull to refresh
+  pullToRefresh: 'Tarik untuk menyegarkan',
+  releaseToRefresh: 'Lepas untuk menyegarkan',
+  refreshing: 'Menyegarkan...',
 
   webAppUrlLabel: 'URL Web App Google Apps Script',
   connectBtn: 'Hubungkan',
