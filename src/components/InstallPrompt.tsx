@@ -3,7 +3,7 @@ import useInstallPrompt from '../hooks/useInstallPrompt';
 import { isIosDevice, isMobileDevice } from '../utils/device';
 import { useI18n } from '../i18n/context';
 
-const DISMISS_KEY = 'uang:install-dismissed';
+const DISMISS_KEY = 'finance:install-dismissed';
 const APP_NAME = 'Uang';
 
 function wasDismissed(): boolean {

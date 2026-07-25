@@ -7,7 +7,7 @@
 // the Apps Script API (cross-origin) are intentionally left untouched here -
 // offline data handling for those lives in src/offline/localCache.ts instead.
 
-const CACHE_NAME = 'oma-recipe-shell-v1';
+const CACHE_NAME = 'finance-app-shell-v1';
 const PRECACHE_URLS = ['/', '/index.html'];
 
 self.addEventListener('install', (event) => {
