@@ -162,10 +162,12 @@ export default function useTransactionStore(): TransactionStore {
       const queue = loadQueue();
       const pendingAddIndex = queue.findIndex((e) => e.type === 'add' && e.id === id);
       if (pendingAddIndex !== -1) {
-        queue[pendingAddIndex] = {
-          ...queue[pendingAddIndex],
-          payload: { ...queue[pendingAddIndex].payload, ...form }
-        };
+        // Mutate the queued add's payload IN PLACE rather than replacing the
+        // entry object. syncQueue removes a processed entry by object identity
+        // (e !== entry); replacing the object here would orphan an in-flight
+        // add so it never gets removed and gets re-sent as a duplicate row.
+        // Preserving identity keeps that removal correct.
+        queue[pendingAddIndex].payload = { ...queue[pendingAddIndex].payload, ...form };
         saveQueue(queue);
         setPendingCount(queue.length);
       } else {
