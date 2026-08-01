@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { useI18n } from '../i18n/context';
 import { formatIDR } from '../utils/money';
-import { currentMonth, previousMonth, type Period } from '../utils/period';
+import { currentMonth, monthName, previousMonth, type Period } from '../utils/period';
 
 interface SummaryProps {
   /** All-time: a balance scoped to a period would be a different number. */
@@ -13,13 +13,13 @@ interface SummaryProps {
 }
 
 function Summary({ balance, income, expense, period, todayISO }: SummaryProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   function periodName(): string {
     if (period.kind === 'date') return t('periodOnDate', { date: period.date });
     if (period.key === currentMonth(todayISO).key) return t('periodThisMonth');
     if (period.key === previousMonth(todayISO).key) return t('periodLastMonth');
-    return period.key;
+    return monthName(period.key, locale);
   }
 
   return (

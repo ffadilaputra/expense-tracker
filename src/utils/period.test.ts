@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { currentMonth, previousMonth, filterByPeriod } from './period';
+import { availableMonths, currentMonth, monthName, previousMonth, filterByPeriod } from './period';
 import type { Transaction } from '../types';
 
 function tx(partial: Partial<Transaction>): Transaction {
@@ -24,6 +24,50 @@ describe('previousMonth', () => {
   });
   it('does not depend on the day of month', () => {
     expect(previousMonth('2026-03-31')).toEqual(previousMonth('2026-03-01'));
+  });
+});
+
+describe('monthName', () => {
+  it('renders a month key for people', () => {
+    expect(monthName('2026-03', 'en')).toBe('March 2026');
+    expect(monthName('2026-12', 'en')).toBe('December 2026');
+  });
+
+  it('follows the locale', () => {
+    expect(monthName('2026-03', 'id')).toBe('Maret 2026');
+  });
+
+  it('reads the key in UTC so January cannot slip to the previous year', () => {
+    expect(monthName('2026-01', 'en')).toBe('January 2026');
+  });
+});
+
+describe('availableMonths', () => {
+  it('lists every month holding a transaction, newest first', () => {
+    const txns = [
+      tx({ date: '2026-06-15' }),
+      tx({ date: '2026-04-02' }),
+      tx({ date: '2026-06-28' })
+    ];
+    expect(availableMonths(txns, '2026-08-01')).toEqual(['2026-08', '2026-06', '2026-04']);
+  });
+
+  it('always includes the current month so a new sheet is not empty', () => {
+    expect(availableMonths([], '2026-08-01')).toEqual(['2026-08']);
+  });
+
+  it('does not repeat the current month when it also holds transactions', () => {
+    expect(availableMonths([tx({ date: '2026-08-05' })], '2026-08-01')).toEqual(['2026-08']);
+  });
+
+  it('leaves out months in the future', () => {
+    const txns = [tx({ date: '2026-09-01' }), tx({ date: '2026-07-01' })];
+    expect(availableMonths(txns, '2026-08-01')).toEqual(['2026-08', '2026-07']);
+  });
+
+  it('spans a year boundary in order', () => {
+    const txns = [tx({ date: '2025-12-20' }), tx({ date: '2026-01-05' })];
+    expect(availableMonths(txns, '2026-01-15')).toEqual(['2026-01', '2025-12']);
   });
 });
 

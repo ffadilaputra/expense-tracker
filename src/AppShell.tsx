@@ -18,7 +18,7 @@ import Icon from './components/Icon';
 import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
 import { computeBalance, computeTotals } from './utils/summary';
-import { currentMonth, filterByPeriod, type Period } from './utils/period';
+import { availableMonths, currentMonth, filterByPeriod, type Period } from './utils/period';
 import { computeSpendingTrend } from './utils/spendingTrend';
 import {
   applyCategoryFilter,
@@ -98,6 +98,8 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   // Deliberately not period-scoped: this always compares this calendar month
   // with last, so it means the same thing wherever the user has navigated.
   const trend = useMemo(() => computeSpendingTrend(transactions, today), [transactions, today]);
+
+  const months = useMemo(() => availableMonths(transactions, today), [transactions, today]);
 
   // Resolved once here so the list does not search the accounts array per row.
   const accountLabels = useMemo(
@@ -312,7 +314,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           />
         ) : (
           <>
-        <PeriodBar period={period} todayISO={today} onChange={setPeriod} />
+        <PeriodBar period={period} todayISO={today} months={months} onChange={setPeriod} />
         <Summary
           balance={balance}
           income={totals.income}

@@ -39,6 +39,34 @@ export function previousMonth(todayISO: string): MonthPeriod {
   return { kind: 'month', key: `${prevYear}-${String(prevMonth).padStart(2, '0')}` };
 }
 
+/** Month key rendered for people, e.g. "March 2026" / "Maret 2026". */
+export function monthName(key: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  }).format(new Date(`${key}-01T00:00:00Z`));
+}
+
+/**
+ * Months the user can actually navigate to: every month containing a
+ * transaction, plus the current one so a new sheet is not empty, newest first.
+ *
+ * Offering only months with data keeps the list short and honest - an empty
+ * month is reachable in principle but there would be nothing in it to see.
+ * Future months are excluded even if a transaction is dated ahead, since the
+ * period bar is for reviewing what has happened.
+ */
+export function availableMonths(txns: Transaction[], todayISO: string): string[] {
+  const thisMonth = monthKey(todayISO);
+  const keys = new Set<string>([thisMonth]);
+  for (const t of txns) {
+    const key = monthKey(t.date);
+    if (key <= thisMonth) keys.add(key);
+  }
+  return [...keys].sort((a, b) => b.localeCompare(a));
+}
+
 export function filterByPeriod(txns: Transaction[], period: Period): Transaction[] {
   if (period.kind === 'date') return txns.filter((t) => t.date === period.date);
   return txns.filter((t) => monthKey(t.date) === period.key);

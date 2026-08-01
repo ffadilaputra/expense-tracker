@@ -21,9 +21,8 @@ export const en = {
   periodBarLabel: 'Time period',
   periodLastMonth: 'Last month',
   periodThisMonth: 'This month',
-  periodPickDate: 'Pick a date',
+  periodPickMonth: 'Pick a month',
   periodOnDate: 'On {date}',
-  periodClearDate: 'Clear date',
 
   // Category filter
   categoryFilterLabel: 'Filter by category',
@@ -197,9 +196,8 @@ export const id: Record<TranslationKey, string> = {
   periodBarLabel: 'Periode waktu',
   periodLastMonth: 'Bulan lalu',
   periodThisMonth: 'Bulan ini',
-  periodPickDate: 'Pilih tanggal',
+  periodPickMonth: 'Pilih bulan',
   periodOnDate: 'Pada {date}',
-  periodClearDate: 'Hapus tanggal',
 
   categoryFilterLabel: 'Saring menurut kategori',
   filterAllLabel: 'Semua',
