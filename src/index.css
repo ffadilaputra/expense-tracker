@@ -366,10 +366,23 @@ button:disabled { opacity: 0.5; cursor: default; }
 .heatmap__head { display: flex; align-items: center; justify-content: space-between; }
 .heatmap__title { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .heatmap__clear { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem; }
-.heatmap__scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
-.heatmap__grid { display: inline-flex; gap: 3px; padding-bottom: 2px; }
-.heatmap__col { display: flex; flex-direction: column; gap: 3px; }
-.heat-cell { width: 12px; height: 12px; border-radius: 3px; border: none; padding: 0; background: var(--heat-0); }
+.heatmap__scroll { max-width: 100%; }
+/* The grid fills its container instead of laying out fixed 12px cells: at that
+   size 26 weeks came to ~387px, which overflowed and scrolled on a phone while
+   occupying barely half the column on a desktop.
+   grid-auto-flow keeps the week count out of the CSS - the columns come from
+   however many the component renders. */
+.heatmap__grid {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  gap: 3px; padding-bottom: 2px;
+}
+.heatmap__col { display: grid; grid-auto-rows: 1fr; gap: 3px; min-width: 0; }
+.heat-cell {
+  width: 100%; height: auto; aspect-ratio: 1; min-width: 0;
+  /* Proportional radius so the corners stay in scale as the cells grow. */
+  border-radius: 22%;
+  border: none; padding: 0; background: var(--heat-0);
+}
 .heat-cell--pad { background: transparent; }
 .heat-cell--l0 { background: var(--heat-0); }
 .heat-cell--l1 { background: var(--heat-1); }
@@ -378,6 +391,9 @@ button:disabled { opacity: 0.5; cursor: default; }
 .heat-cell--l4 { background: var(--heat-4); }
 .heat-cell--selected { outline: 2px solid var(--accent); outline-offset: 1px; }
 .heatmap__legend { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 0.7rem; }
+.heatmap__legend .heat-cell {
+  width: 12px; height: 12px; aspect-ratio: auto; flex: none; border-radius: 3px;
+}
 
 /* Transaction list */
 .txn-list { display: flex; flex-direction: column; gap: var(--space-5); }
@@ -512,11 +528,9 @@ button:disabled { opacity: 0.5; cursor: default; }
 .toast__text { margin: 0; flex: 1; font-size: 0.9rem; }
 .toast__dismiss { border: none; background: transparent; color: var(--muted); }
 
-@media (min-width: 1024px) {
-  /* .summary__amount is sized by clamp() now; a fixed override here fought it
-     and made the hero smaller on wide screens than on a phone. */
-  .heat-cell { width: 14px; height: 14px; }
-}
+/* Nothing here any more: .summary__amount is sized by clamp(), and the heatmap
+   cells scale with their container. Both previously had fixed overrides that
+   fought the fluid sizing. */
 
 /* ---------------------------------------------------------------------- */
 /* Reconcile: class names emitted by components ported from recipe-app    */
