@@ -240,6 +240,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   return (
     <div className="app">
       <header className="app__header">
+        <div className="app__header-inner">
         <div className="app__header-row">
           <h1 className="app__title">{t('appTitle')}</h1>
           <div className="app__header-controls">
@@ -296,6 +297,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           onRetryFailed={retryFailedChanges}
           onDiscardFailed={discardFailedChanges}
         />
+        </div>
       </header>
 
       <main className="app__main">

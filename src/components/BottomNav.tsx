@@ -14,6 +14,7 @@ function BottomNav({ tab, onChange }: BottomNavProps) {
 
   return (
     <nav className="bottom-nav" aria-label={t('navLabel')}>
+      <div className="bottom-nav__inner">
       <button
         type="button"
         className={`bottom-nav__btn ${tab === 'transactions' ? 'active' : ''}`}
@@ -32,6 +33,7 @@ function BottomNav({ tab, onChange }: BottomNavProps) {
         <Icon name="wallet" />
         {t('navAccounts')}
       </button>
+      </div>
     </nav>
   );
 }
