@@ -13,6 +13,8 @@ import TransactionList from './components/TransactionList';
 import BackupPanel from './components/BackupPanel';
 import BottomNav, { type Tab } from './components/BottomNav';
 import AccountsScreen from './components/AccountsScreen';
+import LoadingSkeleton from './components/LoadingSkeleton';
+import Icon from './components/Icon';
 import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
 import { computeBalance, computeTotals } from './utils/summary';
@@ -52,6 +54,8 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     transactions,
     accounts,
     transfers,
+    loading,
+    refreshing,
     error,
     isOnline,
     syncing,
@@ -260,6 +264,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
                         setBackupOpen(true);
                       }}
                     >
+                      <Icon name="backup" />
                       {t('backupMenuItem')}
                     </button>
                     <button
@@ -270,6 +275,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
                         onChangeSheet();
                       }}
                     >
+                      <Icon name="sheet" />
                       {t('changeSheetLabel')}
                     </button>
                   </div>
@@ -282,6 +288,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           isOnline={isOnline}
           syncing={syncing}
           pendingCount={pendingCount}
+          refreshing={refreshing}
           failedCount={failedCount}
           onSyncNow={syncNow}
           onRetryFailed={retryFailedChanges}
@@ -291,7 +298,9 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
 
       <main className="app__main">
         <PullToRefreshIndicator {...pull} />
-        {tab === 'accounts' ? (
+        {loading ? (
+          <LoadingSkeleton />
+        ) : tab === 'accounts' ? (
           <AccountsScreen
             accounts={accounts}
             transactions={transactions}
@@ -335,7 +344,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
 
       <BottomNav tab={tab} onChange={setTab} />
 
-      {tab === 'transactions' && (
+      {!loading && tab === 'transactions' && (
         <button type="button" className="fab" aria-label={t('addFabLabel')} onClick={() => setEditor('new')}>
           +
         </button>

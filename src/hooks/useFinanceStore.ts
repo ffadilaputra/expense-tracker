@@ -34,7 +34,10 @@ export interface FinanceStore {
   transactions: Transaction[];
   accounts: Account[];
   transfers: Transfer[];
+  /** First load with nothing cached to show yet. */
   loading: boolean;
+  /** A fetch is in flight; cached data is already on screen. */
+  refreshing: boolean;
   error: string | null;
   isOnline: boolean;
   syncing: boolean;
@@ -74,7 +77,13 @@ export default function useFinanceStore(): FinanceStore {
   const [transactions, setTransactions] = useState<Transaction[]>(() => loadCachedTransactions());
   const [accounts, setAccounts] = useState<Account[]>(() => loadCachedAccounts());
   const [transfers, setTransfers] = useState<Transfer[]>(() => loadCachedTransfers());
-  const [loading, setLoading] = useState(true);
+  // Offline-first: cached rows render instantly, so a full loading state is
+  // only honest on a genuinely empty first load. Every other fetch is a
+  // background refresh over content the user can already see and read.
+  const [loading, setLoading] = useState(
+    () => loadCachedTransactions().length === 0 && navigator.onLine
+  );
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(() => loadQueue().length);
@@ -108,7 +117,7 @@ export default function useFinanceStore(): FinanceStore {
     setFailedCount(loadFailed().length);
   }, []);
 
-  const refreshFromRemote = useCallback(async () => {
+  const fetchAndMerge = useCallback(async () => {
     const remote = await sheetApi.fetchAll();
     const queue = loadQueue();
 
@@ -141,6 +150,21 @@ export default function useFinanceStore(): FinanceStore {
     persistAccounts([...accById.values()]);
     persistTransfers([...trfById.values()]);
   }, [persistTransactions, persistAccounts, persistTransfers]);
+
+  /**
+   * Wraps every fetch so the two indicators stay honest no matter which path
+   * triggered it - mount, reconnect, pull-to-refresh, or a restore. Both clear
+   * on failure too: a fetch that errored is finished, not still running.
+   */
+  const refreshFromRemote = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchAndMerge();
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
+  }, [fetchAndMerge]);
 
   /**
    * Routes one queued change to the API. Delete of a row that never reached the
@@ -220,8 +244,11 @@ export default function useFinanceStore(): FinanceStore {
   }, [syncQueue]);
 
   useEffect(() => {
-    setLoading(false);
-    if (navigator.onLine) refreshFromRemote().catch((err: Error) => setError(err.message));
+    if (!navigator.onLine) {
+      setLoading(false);
+      return;
+    }
+    refreshFromRemote().catch((err: Error) => setError(err.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -409,6 +436,7 @@ export default function useFinanceStore(): FinanceStore {
     accounts,
     transfers,
     loading,
+    refreshing,
     error,
     isOnline,
     syncing,

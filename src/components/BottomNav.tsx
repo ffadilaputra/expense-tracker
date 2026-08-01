@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useI18n } from '../i18n/context';
+import Icon from './Icon';
 
 export type Tab = 'transactions' | 'accounts';
 
@@ -19,6 +20,7 @@ function BottomNav({ tab, onChange }: BottomNavProps) {
         aria-pressed={tab === 'transactions'}
         onClick={() => onChange('transactions')}
       >
+        <Icon name="list" />
         {t('navTransactions')}
       </button>
       <button
@@ -27,6 +29,7 @@ function BottomNav({ tab, onChange }: BottomNavProps) {
         aria-pressed={tab === 'accounts'}
         onClick={() => onChange('accounts')}
       >
+        <Icon name="wallet" />
         {t('navAccounts')}
       </button>
     </nav>

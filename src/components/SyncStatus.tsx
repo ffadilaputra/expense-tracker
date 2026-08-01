@@ -5,6 +5,8 @@ interface SyncStatusProps {
   isOnline: boolean;
   syncing: boolean;
   pendingCount: number;
+  /** A background fetch is in flight over data already on screen. */
+  refreshing: boolean;
   /** Changes the sheet refused; they will not retry on their own. */
   failedCount: number;
   onSyncNow: () => void;
@@ -16,6 +18,7 @@ function SyncStatus({
   isOnline,
   syncing,
   pendingCount,
+  refreshing,
   failedCount,
   onSyncNow,
   onRetryFailed,
@@ -28,6 +31,12 @@ function SyncStatus({
       <div className="sync-status__row">
         <span className={`sync-dot ${isOnline ? 'is-online' : 'is-offline'}`} />
         <span>{isOnline ? t('syncOnline') : t('syncOffline')}</span>
+        {refreshing && (
+          <>
+            <span className="sync-status__sep">·</span>
+            <span className="sync-status__refreshing">{t('refreshing')}</span>
+          </>
+        )}
         {pendingCount > 0 && (
           <>
             <span className="sync-status__sep">·</span>
