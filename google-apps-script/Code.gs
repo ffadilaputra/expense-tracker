@@ -23,6 +23,13 @@ var ACCOUNTS_SHEET = 'Accounts';
 var ACCOUNT_HEADERS = ['id', 'name', 'ownerName', 'icon', 'createdAt'];
 var TRANSFERS_SHEET = 'Transfers';
 var TRANSFER_HEADERS = ['id', 'fromAccountId', 'toAccountId', 'amount', 'date', 'note', 'createdAt'];
+var DEBTS_SHEET = 'Debts';
+var DEBT_HEADERS = ['id', 'name', 'totalAmount', 'instalmentCount', 'firstDueDate', 'note', 'createdAt'];
+// Sparse: a row exists only for an instalment that has been edited or paid.
+var INSTALMENTS_SHEET = 'DebtInstalments';
+var INSTALMENT_HEADERS = [
+  'id', 'debtId', 'number', 'amount', 'dueDate', 'paidDate', 'transactionId', 'createdAt'
+];
 
 function getSheetFor(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -163,7 +170,9 @@ function listAll() {
   return {
     transactions: getAll(getSheet()),
     accounts: readTab(ACCOUNTS_SHEET, ACCOUNT_HEADERS, accountRowToObject),
-    transfers: readTab(TRANSFERS_SHEET, TRANSFER_HEADERS, transferRowToObject)
+    transfers: readTab(TRANSFERS_SHEET, TRANSFER_HEADERS, transferRowToObject),
+    debts: readTab(DEBTS_SHEET, DEBT_HEADERS, debtRowToObject),
+    debtInstalments: readTab(INSTALMENTS_SHEET, INSTALMENT_HEADERS, instalmentRowToObject)
   };
 }
 
@@ -266,7 +275,7 @@ function findRowIndexById(sheet, id) {
 }
 
 function addTransaction(sheet, data) {
-  var id = Utilities.getUuid();
+  var id = data.id ? String(data.id) : Utilities.getUuid();
   var row = [
     id,
     normType(data.type),
@@ -384,6 +393,131 @@ function importData(data) {
   };
 }
 
+function debtRowToObject(row) {
+  return {
+    id: String(row[0]),
+    name: String(row[1]),
+    totalAmount: normAmount(row[2]),
+    instalmentCount: normAmount(row[3]),
+    firstDueDate: normDate(row[4]),
+    note: String(row[5] == null ? '' : row[5]),
+    createdAt: String(row[6] == null ? '' : row[6])
+  };
+}
+
+function instalmentRowToObject(row) {
+  return {
+    id: String(row[0]),
+    debtId: String(row[1]),
+    number: normAmount(row[2]),
+    // Blank means "not overridden", which is not the same as zero.
+    amount: row[3] === '' || row[3] == null ? null : normAmount(row[3]),
+    dueDate: row[4] === '' || row[4] == null ? '' : normDate(row[4]),
+    paidDate: row[5] === '' || row[5] == null ? '' : normDate(row[5]),
+    transactionId: String(row[6] == null ? '' : row[6]),
+    createdAt: String(row[7] == null ? '' : row[7])
+  };
+}
+
+function addDebt(data) {
+  var sheet = getSheetFor(DEBTS_SHEET, DEBT_HEADERS);
+  var row = [
+    Utilities.getUuid(),
+    data.name || '',
+    normAmount(data.totalAmount),
+    normAmount(data.instalmentCount),
+    normDate(data.firstDueDate || new Date()),
+    data.note || '',
+    new Date().toISOString()
+  ];
+  sheet.appendRow(row);
+  return { success: true, data: debtRowToObject(row) };
+}
+
+function updateDebt(data) {
+  var sheet = getSheetFor(DEBTS_SHEET, DEBT_HEADERS);
+  var rowIndex = findRowIndexById(sheet, data.id);
+  if (rowIndex === -1) return { success: false, error: 'Debt not found' };
+  var existing = sheet.getRange(rowIndex, 1, 1, DEBT_HEADERS.length).getValues()[0];
+  var updated = [
+    existing[0],
+    data.name != null ? data.name : existing[1],
+    data.totalAmount != null ? normAmount(data.totalAmount) : existing[2],
+    data.instalmentCount != null ? normAmount(data.instalmentCount) : existing[3],
+    data.firstDueDate != null ? normDate(data.firstDueDate) : existing[4],
+    data.note != null ? data.note : existing[5],
+    existing[6]
+  ];
+  sheet.getRange(rowIndex, 1, 1, DEBT_HEADERS.length).setValues([updated]);
+  return { success: true, data: debtRowToObject(updated) };
+}
+
+function deleteDebt(id) {
+  var sheet = getSheetFor(DEBTS_SHEET, DEBT_HEADERS);
+  var rowIndex = findRowIndexById(sheet, id);
+  if (rowIndex === -1) return { success: false, error: 'Debt not found' };
+
+  // Refuse while payments exist: those expenses are still in the ledger, and
+  // dropping the debt would orphan them with no way back.
+  var instalments = readTab(INSTALMENTS_SHEET, INSTALMENT_HEADERS, instalmentRowToObject);
+  var paid = 0;
+  for (var i = 0; i < instalments.length; i++) {
+    if (instalments[i].debtId === String(id) && instalments[i].paidDate !== '') paid++;
+  }
+  if (paid > 0) {
+    return { success: false, error: 'Debt has ' + paid + ' paid instalment(s)', data: { paid: paid } };
+  }
+
+  // Unpaid override rows carry nothing worth keeping once the debt is gone.
+  var sheetI = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INSTALMENTS_SHEET);
+  if (sheetI) {
+    var values = sheetI.getDataRange().getValues();
+    for (var r = values.length - 1; r >= 1; r--) {
+      if (String(values[r][1]) === String(id)) sheetI.deleteRow(r + 1);
+    }
+  }
+
+  sheet.deleteRow(rowIndex);
+  return { success: true };
+}
+
+function instalmentToRow(data, id, createdAt) {
+  return [
+    id,
+    data.debtId || '',
+    normAmount(data.number),
+    data.amount == null || data.amount === '' ? '' : normAmount(data.amount),
+    data.dueDate ? normDate(data.dueDate) : '',
+    data.paidDate ? normDate(data.paidDate) : '',
+    data.transactionId || '',
+    createdAt
+  ];
+}
+
+/** One row per instalment that deviates, so this upserts on (debtId, number). */
+function saveInstalment(data) {
+  var sheet = getSheetFor(INSTALMENTS_SHEET, INSTALMENT_HEADERS);
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][1]) === String(data.debtId) && normAmount(values[i][2]) === normAmount(data.number)) {
+      var row = instalmentToRow(data, String(values[i][0]), String(values[i][7]));
+      sheet.getRange(i + 1, 1, 1, INSTALMENT_HEADERS.length).setValues([row]);
+      return { success: true, data: instalmentRowToObject(row) };
+    }
+  }
+  var fresh = instalmentToRow(data, data.id ? String(data.id) : Utilities.getUuid(), new Date().toISOString());
+  sheet.appendRow(fresh);
+  return { success: true, data: instalmentRowToObject(fresh) };
+}
+
+function deleteInstalment(id) {
+  var sheet = getSheetFor(INSTALMENTS_SHEET, INSTALMENT_HEADERS);
+  var rowIndex = findRowIndexById(sheet, id);
+  if (rowIndex === -1) return { success: false, error: 'Instalment not found' };
+  sheet.deleteRow(rowIndex);
+  return { success: true };
+}
+
 function doGet(e) {
   try {
     var params = (e && e.parameter) || {};
@@ -416,6 +550,11 @@ function doPost(e) {
     if (action === 'deleteAccount') return jsonResponse(deleteAccount(data.id));
     if (action === 'addTransfer') return jsonResponse(addTransfer(data));
     if (action === 'deleteTransfer') return jsonResponse(deleteTransfer(data.id));
+    if (action === 'addDebt') return jsonResponse(addDebt(data));
+    if (action === 'updateDebt') return jsonResponse(updateDebt(data));
+    if (action === 'deleteDebt') return jsonResponse(deleteDebt(data.id));
+    if (action === 'saveInstalment') return jsonResponse(saveInstalment(data));
+    if (action === 'deleteInstalment') return jsonResponse(deleteInstalment(data.id));
     return jsonResponse({ success: false, error: 'Unknown POST action: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: 'Script error: ' + (err && err.message ? err.message : err) });

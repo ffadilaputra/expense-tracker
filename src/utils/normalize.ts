@@ -4,7 +4,7 @@
 // arrive as a full timestamp. Every field is forced to the type our model
 // promises so a malformed cell can never crash the list or the summary.
 
-import type { Account, Transaction, Transfer } from '../types';
+import type { Account, Debt, DebtInstalment, Transaction, Transfer } from '../types';
 
 export function str(v: unknown): string {
   return v == null ? '' : String(v);
@@ -46,6 +46,36 @@ export function normalizeTransfer(raw: Partial<Transfer>): Transfer {
     amount: num(raw.amount),
     date: str(raw.date).slice(0, 10),
     note: raw.note == null ? '' : str(raw.note),
+    createdAt: str(raw.createdAt)
+  };
+}
+
+export function normalizeDebt(raw: Partial<Debt>): Debt {
+  return {
+    id: str(raw.id),
+    name: str(raw.name),
+    totalAmount: num(raw.totalAmount),
+    instalmentCount: num(raw.instalmentCount),
+    firstDueDate: str(raw.firstDueDate).slice(0, 10),
+    note: raw.note == null ? '' : str(raw.note),
+    createdAt: str(raw.createdAt)
+  };
+}
+
+/**
+ * `amount` and `dueDate` stay undefined when the sheet holds a blank: blank
+ * means "not overridden", which is not the same as an instalment of zero.
+ */
+export function normalizeInstalment(raw: Partial<DebtInstalment>): DebtInstalment {
+  const amount = raw.amount;
+  return {
+    id: str(raw.id),
+    debtId: str(raw.debtId),
+    number: num(raw.number),
+    amount: amount == null || amount === ('' as unknown) ? undefined : num(amount),
+    dueDate: raw.dueDate ? str(raw.dueDate).slice(0, 10) : undefined,
+    paidDate: raw.paidDate ? str(raw.paidDate).slice(0, 10) : undefined,
+    transactionId: raw.transactionId ? str(raw.transactionId) : undefined,
     createdAt: str(raw.createdAt)
   };
 }

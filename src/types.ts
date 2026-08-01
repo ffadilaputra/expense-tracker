@@ -53,10 +53,44 @@ export interface Transfer {
   _pending?: boolean;
 }
 
+/** A sum the user owes, repaid over a fixed number of monthly instalments. */
+export interface Debt {
+  id: string;
+  name: string;
+  /** Total repayable, IDR. Interest, if any, is already inside it. */
+  totalAmount: number;
+  instalmentCount: number;
+  /** ISO date of instalment 1; the rest are spaced monthly from it. */
+  firstDueDate: string;
+  note?: string;
+  createdAt: string;
+  _pending?: boolean;
+}
+
+/**
+ * Stored only for an instalment that deviates from the computed schedule -
+ * one that has been edited or paid. A 24-month debt starts with no rows.
+ */
+export interface DebtInstalment {
+  id: string;
+  debtId: string;
+  /** 1-based position in the schedule. */
+  number: number;
+  /** Set only when overridden. */
+  amount?: number;
+  /** Set only when overridden. */
+  dueDate?: string;
+  paidDate?: string;
+  /** The expense this payment created. */
+  transactionId?: string;
+  createdAt: string;
+  _pending?: boolean;
+}
+
 export type SyncOperation = 'add' | 'update' | 'delete';
 
 /** Which collection a queued change belongs to. */
-export type SyncEntity = 'transaction' | 'account' | 'transfer';
+export type SyncEntity = 'transaction' | 'account' | 'transfer' | 'debt' | 'debtInstalment';
 
 /** A queued change waiting to be pushed to Google Sheets once back online. */
 export interface QueueEntry {

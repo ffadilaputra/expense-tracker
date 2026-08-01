@@ -92,6 +92,12 @@ describe('fetchAll', () => {
     mockFetch(async () => ({ json: async () => ({ success: true, data: { transactions: [] } }) }));
 
     const snapshot = await fetchAll();
-    expect(snapshot).toEqual({ transactions: [], accounts: [], transfers: [] });
+    expect(snapshot).toEqual({
+      transactions: [],
+      accounts: [],
+      transfers: [],
+      debts: [],
+      debtInstalments: []
+    });
   });
 });

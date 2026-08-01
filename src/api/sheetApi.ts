@@ -8,8 +8,22 @@
 import { getStoredApiUrl } from '../config/apiUrl';
 import { getStoredLocale } from '../i18n/locale';
 import { translate } from '../i18n/translate';
-import { normalizeAccount, normalizeTransaction, normalizeTransfer } from '../utils/normalize';
-import type { Account, ApiEnvelope, Transaction, TransactionFormData, Transfer } from '../types';
+import {
+  normalizeAccount,
+  normalizeDebt,
+  normalizeInstalment,
+  normalizeTransaction,
+  normalizeTransfer
+} from '../utils/normalize';
+import type {
+  Account,
+  ApiEnvelope,
+  Debt,
+  DebtInstalment,
+  Transaction,
+  TransactionFormData,
+  Transfer
+} from '../types';
 
 function requireApiUrl(): string {
   const url = getStoredApiUrl();
@@ -34,12 +48,16 @@ export interface SheetSnapshot {
   transactions: Transaction[];
   accounts: Account[];
   transfers: Transfer[];
+  debts: Debt[];
+  debtInstalments: DebtInstalment[];
 }
 
 interface RawSnapshot {
   transactions?: unknown[];
   accounts?: unknown[];
   transfers?: unknown[];
+  debts?: unknown[];
+  debtInstalments?: unknown[];
 }
 
 /**
@@ -60,7 +78,11 @@ export async function fetchAll(): Promise<SheetSnapshot> {
   return {
     transactions: (raw.transactions ?? []).map((r) => normalizeTransaction(r as Partial<Transaction>)),
     accounts: (raw.accounts ?? []).map((r) => normalizeAccount(r as Partial<Account>)),
-    transfers: (raw.transfers ?? []).map((r) => normalizeTransfer(r as Partial<Transfer>))
+    transfers: (raw.transfers ?? []).map((r) => normalizeTransfer(r as Partial<Transfer>)),
+    debts: (raw.debts ?? []).map((r) => normalizeDebt(r as Partial<Debt>)),
+    debtInstalments: (raw.debtInstalments ?? []).map((r) =>
+      normalizeInstalment(r as Partial<DebtInstalment>)
+    )
   };
 }
 
@@ -107,6 +129,34 @@ export async function deleteTransfer(id: string): Promise<void> {
   await postAction<null>('deleteTransfer', { id });
 }
 
+export type DebtFormData = Pick<
+  Debt,
+  'name' | 'totalAmount' | 'instalmentCount' | 'firstDueDate' | 'note'
+>;
+
+export async function addDebt(form: DebtFormData): Promise<Debt> {
+  return normalizeDebt(await postAction<Debt>('addDebt', form));
+}
+
+export async function updateDebt(data: Partial<DebtFormData> & { id: string }): Promise<Debt> {
+  return normalizeDebt(await postAction<Debt>('updateDebt', data));
+}
+
+export async function deleteDebt(id: string): Promise<void> {
+  await postAction<null>('deleteDebt', { id });
+}
+
+export type InstalmentSaveData = Omit<DebtInstalment, 'createdAt' | '_pending'>;
+
+/** Upserts on (debtId, number); the sheet owns that uniqueness. */
+export async function saveInstalment(data: InstalmentSaveData): Promise<DebtInstalment> {
+  return normalizeInstalment(await postAction<DebtInstalment>('saveInstalment', data));
+}
+
+export async function deleteInstalment(id: string): Promise<void> {
+  await postAction<null>('deleteInstalment', { id });
+}
+
 export interface ImportCounts {
   added: number;
   skipped: number;
@@ -140,7 +190,12 @@ async function postAction<T>(
     | 'updateAccount'
     | 'deleteAccount'
     | 'addTransfer'
-    | 'deleteTransfer',
+    | 'deleteTransfer'
+    | 'addDebt'
+    | 'updateDebt'
+    | 'deleteDebt'
+    | 'saveInstalment'
+    | 'deleteInstalment',
   data: unknown
 ): Promise<T> {
   const apiUrl = requireApiUrl();

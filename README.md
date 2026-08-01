@@ -49,10 +49,15 @@ Your Google Sheet must have a tab named **Transactions** with the following colu
 | `createdAt`| ISO timestamp (auto-generated)  |
 | `accountId`| Id from the Accounts tab (optional; blank = unassigned) |
 
-Two more tabs are created automatically the first time you need them:
+Four more tabs are created automatically the first time you need them:
 
 **Accounts** — `id`, `name`, `ownerName`, `icon`, `createdAt`
 **Transfers** — `id`, `fromAccountId`, `toAccountId`, `amount`, `date`, `note`, `createdAt`
+**Debts** — `id`, `name`, `totalAmount`, `instalmentCount`, `firstDueDate`, `note`, `createdAt`
+**DebtInstalments** — `id`, `debtId`, `number`, `amount`, `dueDate`, `paidDate`, `transactionId`, `createdAt`
+
+`DebtInstalments` is sparse: a row appears only for an instalment you have edited or paid, so a
+24-month debt starts with no rows at all. The rest of the schedule is computed from the header.
 
 The Apps Script handles all of this automatically—just create the sheet and deploy the code. It also
 adds any column a newer version needs, so upgrading is a matter of pasting in the new `Code.gs` and

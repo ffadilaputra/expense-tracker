@@ -3,10 +3,14 @@ import * as sheetApi from '../api/sheetApi';
 import {
   isLocalId,
   loadCachedAccounts,
+  loadCachedDebts,
+  loadCachedInstalments,
   loadCachedTransactions,
   loadCachedTransfers,
   makeLocalId,
   saveCachedAccounts,
+  saveCachedDebts,
+  saveCachedInstalments,
   saveCachedTransactions,
   saveCachedTransfers
 } from '../offline/localCache';
@@ -24,6 +28,8 @@ import { getStoredLocale } from '../i18n/locale';
 import { translate } from '../i18n/translate';
 import type {
   Account,
+  Debt,
+  DebtInstalment,
   QueueEntry,
   Transaction,
   TransactionFormData,
@@ -34,6 +40,9 @@ export interface FinanceStore {
   transactions: Transaction[];
   accounts: Account[];
   transfers: Transfer[];
+  debts: Debt[];
+  /** Sparse: only instalments that have been edited or paid. */
+  debtInstalments: DebtInstalment[];
   /** First load with nothing cached to show yet. */
   loading: boolean;
   /** A fetch is in flight; cached data is already on screen. */
@@ -51,11 +60,27 @@ export interface FinanceStore {
   deleteAccount: (id: string) => Promise<void>;
   addTransfer: (form: sheetApi.TransferFormData) => Promise<Transfer>;
   deleteTransfer: (id: string) => Promise<void>;
+  addDebt: (form: sheetApi.DebtFormData) => Promise<Debt>;
+  updateDebt: (id: string, form: Partial<sheetApi.DebtFormData>) => Promise<void>;
+  deleteDebt: (id: string) => Promise<void>;
+  saveInstalment: (row: sheetApi.InstalmentSaveData) => Promise<void>;
+  payInstalment: (input: PayInstalmentInput) => Promise<void>;
+  unpayInstalment: (row: DebtInstalment) => Promise<void>;
   retryFailedChanges: () => void;
   discardFailedChanges: () => void;
   syncNow: () => Promise<void>;
   refresh: () => Promise<void>;
   clearError: () => void;
+}
+
+export interface PayInstalmentInput {
+  debt: Debt;
+  number: number;
+  amount: number;
+  date: string;
+  accountId: string;
+  /** The stored row for this instalment, when one already exists. */
+  existing?: DebtInstalment;
 }
 
 const isRejection = (err: unknown) => err instanceof sheetApi.ApiRejectionError;
@@ -77,6 +102,8 @@ export default function useFinanceStore(): FinanceStore {
   const [transactions, setTransactions] = useState<Transaction[]>(() => loadCachedTransactions());
   const [accounts, setAccounts] = useState<Account[]>(() => loadCachedAccounts());
   const [transfers, setTransfers] = useState<Transfer[]>(() => loadCachedTransfers());
+  const [debts, setDebts] = useState<Debt[]>(() => loadCachedDebts());
+  const [debtInstalments, setInstalments] = useState<DebtInstalment[]>(() => loadCachedInstalments());
   // Offline-first: cached rows render instantly, so a full loading state is
   // only honest on a genuinely empty first load. Every other fetch is a
   // background refresh over content the user can already see and read.
@@ -93,9 +120,13 @@ export default function useFinanceStore(): FinanceStore {
   const txnsRef = useRef(transactions);
   const accountsRef = useRef(accounts);
   const transfersRef = useRef(transfers);
+  const debtsRef = useRef(debts);
+  const instalmentsRef = useRef(debtInstalments);
   txnsRef.current = transactions;
   accountsRef.current = accounts;
   transfersRef.current = transfers;
+  debtsRef.current = debts;
+  instalmentsRef.current = debtInstalments;
 
   const persistTransactions = useCallback((next: Transaction[]) => {
     setTransactions(next);
@@ -112,6 +143,16 @@ export default function useFinanceStore(): FinanceStore {
     saveCachedTransfers(next);
   }, []);
 
+  const persistDebts = useCallback((next: Debt[]) => {
+    setDebts(next);
+    saveCachedDebts(next);
+  }, []);
+
+  const persistInstalments = useCallback((next: DebtInstalment[]) => {
+    setInstalments(next);
+    saveCachedInstalments(next);
+  }, []);
+
   const syncCounts = useCallback(() => {
     setPendingCount(loadQueue().length);
     setFailedCount(loadFailed().length);
@@ -124,10 +165,19 @@ export default function useFinanceStore(): FinanceStore {
     const txnById = new Map(remote.transactions.map((t) => [t.id, t]));
     const accById = new Map(remote.accounts.map((a) => [a.id, a]));
     const trfById = new Map(remote.transfers.map((t) => [t.id, t]));
+    const debtById = new Map(remote.debts.map((d) => [d.id, d]));
+    const instById = new Map(remote.debtInstalments.map((i) => [i.id, i]));
+
+    const maps: Record<string, Map<string, { id: string }>> = {
+      account: accById as never,
+      transfer: trfById as never,
+      debt: debtById as never,
+      debtInstalment: instById as never,
+      transaction: txnById as never
+    };
 
     for (const entry of queue) {
-      const map =
-        entry.entity === 'account' ? accById : entry.entity === 'transfer' ? trfById : txnById;
+      const map = maps[entry.entity] ?? txnById;
       if (entry.type === 'delete') {
         map.delete(entry.id);
         continue;
@@ -149,7 +199,9 @@ export default function useFinanceStore(): FinanceStore {
     persistTransactions([...txnById.values()]);
     persistAccounts([...accById.values()]);
     persistTransfers([...trfById.values()]);
-  }, [persistTransactions, persistAccounts, persistTransfers]);
+    persistDebts([...debtById.values()]);
+    persistInstalments([...instById.values()]);
+  }, [persistTransactions, persistAccounts, persistTransfers, persistDebts, persistInstalments]);
 
   /**
    * Wraps every fetch so the two indicators stay honest no matter which path
@@ -188,6 +240,35 @@ export default function useFinanceStore(): FinanceStore {
         return;
       }
 
+      if (entry.entity === 'debt') {
+        if (entry.type === 'add') {
+          const created = await sheetApi.addDebt(entry.payload as sheetApi.DebtFormData);
+          persistDebts(debtsRef.current.map((d) => (d.id === entry.id ? created : d)));
+        } else if (entry.type === 'update') {
+          await sheetApi.updateDebt({ id: entry.id, ...entry.payload });
+          persistDebts(
+            debtsRef.current.map((d) => (d.id === entry.id ? { ...d, _pending: false } : d))
+          );
+        } else if (!isLocalId(entry.id)) {
+          await sheetApi.deleteDebt(entry.id);
+        }
+        return;
+      }
+
+      if (entry.entity === 'debtInstalment') {
+        if (entry.type === 'delete') {
+          if (!isLocalId(entry.id)) await sheetApi.deleteInstalment(entry.id);
+          return;
+        }
+        // Always an upsert: the sheet keys on (debtId, number), so a second
+        // save for the same instalment updates rather than duplicating.
+        const saved = await sheetApi.saveInstalment(entry.payload as sheetApi.InstalmentSaveData);
+        persistInstalments(
+          instalmentsRef.current.map((i) => (i.id === entry.id ? saved : i))
+        );
+        return;
+      }
+
       if (entry.entity === 'transfer') {
         if (entry.type === 'add') {
           const created = await sheetApi.addTransfer(entry.payload as sheetApi.TransferFormData);
@@ -210,7 +291,7 @@ export default function useFinanceStore(): FinanceStore {
         await sheetApi.deleteTransaction(entry.id);
       }
     },
-    [persistTransactions, persistAccounts, persistTransfers]
+    [persistTransactions, persistAccounts, persistTransfers, persistDebts, persistInstalments]
   );
 
   const syncQueue = useCallback(async () => {
@@ -408,6 +489,149 @@ export default function useFinanceStore(): FinanceStore {
     [persistTransfers, syncCounts, runSync]
   );
 
+  const addDebt = useCallback(
+    async (form: sheetApi.DebtFormData): Promise<Debt> => {
+      const tempId = makeLocalId();
+      const optimistic: Debt = {
+        ...form,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+        _pending: true
+      };
+      persistDebts([...debtsRef.current, optimistic]);
+      queueChange({ entity: 'debt', type: 'add', id: tempId, payload: { ...form } });
+      return optimistic;
+    },
+    [persistDebts, queueChange]
+  );
+
+  const updateDebt = useCallback(
+    async (id: string, form: Partial<sheetApi.DebtFormData>): Promise<void> => {
+      persistDebts(debtsRef.current.map((d) => (d.id === id ? { ...d, ...form, _pending: true } : d)));
+
+      const queue = loadQueue();
+      const pendingAdd = queue.find((e) => e.entity === 'debt' && e.type === 'add' && e.id === id);
+      if (pendingAdd) {
+        pendingAdd.payload = { ...pendingAdd.payload, ...form };
+        saveQueue(queue);
+        if (navigator.onLine) runSync();
+        return;
+      }
+      queueChange({ entity: 'debt', type: 'update', id, payload: { ...form } });
+    },
+    [persistDebts, queueChange, runSync]
+  );
+
+  const deleteDebt = useCallback(
+    async (id: string): Promise<void> => {
+      persistDebts(debtsRef.current.filter((d) => d.id !== id));
+      persistInstalments(instalmentsRef.current.filter((i) => i.debtId !== id));
+
+      const queue = loadQueue();
+      const wasUnsyncedAdd = queue.some(
+        (e) => e.entity === 'debt' && e.type === 'add' && e.id === id
+      );
+      const kept = queue.filter(
+        (e) => !(e.entity === 'debt' && e.id === id) && !(e.entity === 'debtInstalment' && e.payload?.debtId === id)
+      );
+      if (!wasUnsyncedAdd) kept.push({ entity: 'debt', type: 'delete', id, payload: null });
+      saveQueue(kept);
+      syncCounts();
+      if (navigator.onLine) runSync();
+    },
+    [persistDebts, persistInstalments, syncCounts, runSync]
+  );
+
+  /** Upsert of one instalment override row, keyed by (debtId, number). */
+  const saveInstalment = useCallback(
+    async (row: sheetApi.InstalmentSaveData): Promise<void> => {
+      const existing = instalmentsRef.current.find(
+        (i) => i.debtId === row.debtId && i.number === row.number
+      );
+      const id = existing?.id ?? row.id ?? makeLocalId();
+      const next: DebtInstalment = {
+        ...row,
+        id,
+        createdAt: existing?.createdAt ?? new Date().toISOString(),
+        _pending: true
+      };
+
+      persistInstalments(
+        existing
+          ? instalmentsRef.current.map((i) => (i.id === id ? next : i))
+          : [...instalmentsRef.current, next]
+      );
+      queueChange({
+        entity: 'debtInstalment',
+        type: existing ? 'update' : 'add',
+        id,
+        payload: { ...row, id }
+      });
+    },
+    [persistInstalments, queueChange]
+  );
+
+  /**
+   * Marking an instalment paid writes two things: the expense it actually was,
+   * and the row recording that it happened.
+   *
+   * The transaction id is generated here and handed to the sheet rather than
+   * letting the sheet mint one. Offline, a sheet-minted id would not exist yet,
+   * so the instalment would point at a local id that gets replaced on sync and
+   * unpaying could no longer find the expense to delete.
+   */
+  const payInstalment = useCallback(
+    async ({ debt, number, amount, date, accountId, existing }: PayInstalmentInput): Promise<void> => {
+      const transactionId = makeLocalId();
+      const form: TransactionFormData = {
+        type: 'expense',
+        amount,
+        category: debt.name,
+        date,
+        note: `Instalment ${number} of ${debt.instalmentCount}`,
+        accountId
+      };
+
+      persistTransactions([
+        ...txnsRef.current,
+        { ...form, id: transactionId, createdAt: new Date().toISOString(), _pending: true }
+      ]);
+      queueChange({
+        entity: 'transaction',
+        type: 'add',
+        id: transactionId,
+        payload: { ...form, id: transactionId }
+      });
+
+      await saveInstalment({
+        id: existing?.id ?? makeLocalId(),
+        debtId: debt.id,
+        number,
+        amount: existing?.amount,
+        dueDate: existing?.dueDate,
+        paidDate: date,
+        transactionId
+      });
+    },
+    [persistTransactions, queueChange, saveInstalment]
+  );
+
+  const unpayInstalment = useCallback(
+    async (row: DebtInstalment): Promise<void> => {
+      if (row.transactionId) await deleteTransaction(row.transactionId);
+      await saveInstalment({
+        id: row.id,
+        debtId: row.debtId,
+        number: row.number,
+        amount: row.amount,
+        dueDate: row.dueDate,
+        paidDate: undefined,
+        transactionId: undefined
+      });
+    },
+    [deleteTransaction, saveInstalment]
+  );
+
   const retryFailedChanges = useCallback(() => {
     retryFailed();
     syncCounts();
@@ -435,6 +659,8 @@ export default function useFinanceStore(): FinanceStore {
     transactions,
     accounts,
     transfers,
+    debts,
+    debtInstalments,
     loading,
     refreshing,
     error,
@@ -450,6 +676,12 @@ export default function useFinanceStore(): FinanceStore {
     deleteAccount,
     addTransfer,
     deleteTransfer,
+    addDebt,
+    updateDebt,
+    deleteDebt,
+    saveInstalment,
+    payInstalment,
+    unpayInstalment,
     retryFailedChanges,
     discardFailedChanges,
     syncNow: syncAndRefresh,

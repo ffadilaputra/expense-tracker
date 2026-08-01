@@ -4,15 +4,19 @@
 
 import { purge, readFromDisk, scheduleWrite } from './storage';
 import { clearQueues } from './syncQueue';
-import type { Account, Transaction, Transfer } from '../types';
+import type { Account, Debt, DebtInstalment, Transaction, Transfer } from '../types';
 
 const TRANSACTIONS_KEY = 'finance:transactions';
 const ACCOUNTS_KEY = 'finance:accounts';
 const TRANSFERS_KEY = 'finance:transfers';
+const DEBTS_KEY = 'finance:debts';
+const INSTALMENTS_KEY = 'finance:debt-instalments';
 
 let transactionsCache: Transaction[] | null = null;
 let accountsCache: Account[] | null = null;
 let transfersCache: Transfer[] | null = null;
+let debtsCache: Debt[] | null = null;
+let instalmentsCache: DebtInstalment[] | null = null;
 
 export function loadCachedTransactions(): Transaction[] {
   if (transactionsCache === null) transactionsCache = readFromDisk<Transaction[]>(TRANSACTIONS_KEY, []);
@@ -44,6 +48,28 @@ export function saveCachedTransfers(transfers: Transfer[]): void {
   scheduleWrite(TRANSFERS_KEY, transfers);
 }
 
+export function loadCachedDebts(): Debt[] {
+  if (debtsCache === null) debtsCache = readFromDisk<Debt[]>(DEBTS_KEY, []);
+  return debtsCache;
+}
+
+export function saveCachedDebts(debts: Debt[]): void {
+  debtsCache = debts;
+  scheduleWrite(DEBTS_KEY, debts);
+}
+
+export function loadCachedInstalments(): DebtInstalment[] {
+  if (instalmentsCache === null) {
+    instalmentsCache = readFromDisk<DebtInstalment[]>(INSTALMENTS_KEY, []);
+  }
+  return instalmentsCache;
+}
+
+export function saveCachedInstalments(rows: DebtInstalment[]): void {
+  instalmentsCache = rows;
+  scheduleWrite(INSTALMENTS_KEY, rows);
+}
+
 export function makeLocalId(): string {
   return `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -57,6 +83,8 @@ export function clearCache(): void {
   transactionsCache = [];
   accountsCache = [];
   transfersCache = [];
-  purge([TRANSACTIONS_KEY, ACCOUNTS_KEY, TRANSFERS_KEY]);
+  debtsCache = [];
+  instalmentsCache = [];
+  purge([TRANSACTIONS_KEY, ACCOUNTS_KEY, TRANSFERS_KEY, DEBTS_KEY, INSTALMENTS_KEY]);
   clearQueues();
 }

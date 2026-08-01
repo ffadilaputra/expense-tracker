@@ -13,6 +13,7 @@ import TransactionList from './components/TransactionList';
 import BackupPanel from './components/BackupPanel';
 import BottomNav, { type Tab } from './components/BottomNav';
 import AccountsScreen from './components/AccountsScreen';
+import DebtsScreen from './components/DebtsScreen';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import Icon from './components/Icon';
 import { useToast } from './components/Toast';
@@ -27,11 +28,13 @@ import {
   type CategoryChip
 } from './utils/categoryFilter';
 import type { TranslationKey } from './i18n/translations';
-import type { Account, Transaction, TransactionFormData, Transfer } from './types';
+import type { Account, Debt, Transaction, TransactionFormData, Transfer } from './types';
 
 const TransactionForm = lazy(() => import('./components/TransactionForm'));
 const AccountForm = lazy(() => import('./components/AccountForm'));
 const TransferForm = lazy(() => import('./components/TransferForm'));
+const DebtForm = lazy(() => import('./components/DebtForm'));
+const DebtDetail = lazy(() => import('./components/DebtDetail'));
 
 interface AppShellProps {
   onChangeSheet: () => void;
@@ -46,6 +49,9 @@ type Editor = null | 'new' | Transaction;
 
 /** Same convention for the account modal. */
 type AccountEditor = null | 'new' | Account;
+
+/** Same again for debts. */
+type DebtEditor = null | 'new' | Debt;
 
 export default function AppShell({ onChangeSheet }: AppShellProps) {
   const { t } = useI18n();
@@ -69,6 +75,14 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     deleteAccount,
     addTransfer,
     deleteTransfer,
+    debts,
+    debtInstalments,
+    addDebt,
+    updateDebt,
+    deleteDebt,
+    saveInstalment,
+    payInstalment,
+    unpayInstalment,
     retryFailedChanges,
     discardFailedChanges,
     syncNow,
@@ -83,6 +97,8 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const [tab, setTab] = useState<Tab>('transactions');
   const [accountEditor, setAccountEditor] = useState<AccountEditor>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [debtEditor, setDebtEditor] = useState<DebtEditor>(null);
+  const [openDebtId, setOpenDebtId] = useState<string | null>(null);
   const today = todayISO();
   const [period, setPeriodState] = useState<Period>(() => currentMonth(today));
   const [category, setCategory] = useState<CategoryChip | null>(null);
@@ -204,6 +220,35 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     [accountEditor, addAccount, updateAccount]
   );
 
+  const openDebt = debts.find((d) => d.id === openDebtId) ?? null;
+
+  const handleDebtSubmit = useCallback(
+    async (form: Parameters<typeof addDebt>[0]) => {
+      setSubmitting(true);
+      try {
+        if (debtEditor && debtEditor !== 'new') await updateDebt(debtEditor.id, form);
+        else await addDebt(form);
+        setDebtEditor(null);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [debtEditor, addDebt, updateDebt]
+  );
+
+  const handleDebtDelete = useCallback(async () => {
+    if (!debtEditor || debtEditor === 'new') return;
+    if (!confirm(t('debtDeleteConfirm'))) return;
+    setSubmitting(true);
+    try {
+      await deleteDebt(debtEditor.id);
+      setDebtEditor(null);
+      setOpenDebtId(null);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [debtEditor, deleteDebt, t]);
+
   const handleTransferSubmit = useCallback(
     async (form: Parameters<typeof addTransfer>[0]) => {
       setSubmitting(true);
@@ -304,6 +349,14 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
         <PullToRefreshIndicator {...pull} />
         {loading ? (
           <LoadingSkeleton />
+        ) : tab === 'debts' ? (
+          <DebtsScreen
+            debts={debts}
+            instalments={debtInstalments}
+            todayISO={today}
+            onAdd={() => setDebtEditor('new')}
+            onOpen={(debt) => setOpenDebtId(debt.id)}
+          />
         ) : tab === 'accounts' ? (
           <AccountsScreen
             accounts={accounts}
@@ -374,6 +427,99 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
                 {t('closeBtn')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {openDebt && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label={openDebt.name}>
+          <div className="modal__backdrop" onClick={() => !submitting && setOpenDebtId(null)} />
+          <div className="modal__panel modal__panel--wide">
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <DebtDetail
+                debt={openDebt}
+                instalments={debtInstalments}
+                accounts={accounts}
+                todayISO={today}
+                submitting={submitting}
+                onPay={async (row, accountId, date) => {
+                  setSubmitting(true);
+                  try {
+                    await payInstalment({
+                      debt: openDebt,
+                      number: row.number,
+                      amount: row.amount,
+                      date,
+                      accountId,
+                      existing: debtInstalments.find(
+                        (i) => i.debtId === openDebt.id && i.number === row.number
+                      )
+                    });
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                onUnpay={async (row) => {
+                  const stored = debtInstalments.find(
+                    (i) => i.debtId === openDebt.id && i.number === row.number
+                  );
+                  if (!stored) return;
+                  setSubmitting(true);
+                  try {
+                    await unpayInstalment(stored);
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                onOverride={async (row, amount, dueDate) => {
+                  const stored = debtInstalments.find(
+                    (i) => i.debtId === openDebt.id && i.number === row.number
+                  );
+                  setSubmitting(true);
+                  try {
+                    await saveInstalment({
+                      id: stored?.id ?? '',
+                      debtId: openDebt.id,
+                      number: row.number,
+                      amount: amount > 0 ? amount : undefined,
+                      dueDate: dueDate || undefined,
+                      paidDate: stored?.paidDate,
+                      transactionId: stored?.transactionId
+                    });
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                onEditDebt={() => setDebtEditor(openDebt)}
+                onClose={() => setOpenDebtId(null)}
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
+      {debtEditor !== null && (
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={debtEditor === 'new' ? t('debtAddTitle') : t('debtEditTitle')}
+        >
+          <div className="modal__backdrop" onClick={() => !submitting && setDebtEditor(null)} />
+          <div className="modal__panel">
+            <h2 className="modal__title">
+              {debtEditor === 'new' ? t('debtAddTitle') : t('debtEditTitle')}
+            </h2>
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <DebtForm
+                key={debtEditor === 'new' ? 'new' : debtEditor.id}
+                onSubmit={handleDebtSubmit}
+                submitting={submitting}
+                initialValue={debtEditor === 'new' ? undefined : debtEditor}
+                onCancel={() => setDebtEditor(null)}
+                onDelete={debtEditor !== 'new' ? handleDebtDelete : undefined}
+              />
+            </Suspense>
           </div>
         </div>
       )}

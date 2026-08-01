@@ -34,7 +34,6 @@ function Summary({ balance, income, expense, period, todayISO }: SummaryProps) {
           <span className="summary__scope">{t('balanceAllTime')}</span>
         </span>
         <span className="summary__amount">{formatIDR(balance)}</span>
-        <span className="summary__rule" aria-hidden="true" />
       </div>
 
       {/* The caption belongs to the two cards, not to the balance above: they

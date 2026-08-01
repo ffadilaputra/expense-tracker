@@ -339,6 +339,70 @@ button:disabled { opacity: 0.5; cursor: default; }
   max-width: 46ch; text-wrap: pretty;
 }
 
+/* Debts */
+.debt-row {
+  display: flex; flex-direction: column; gap: var(--space-2); width: 100%; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  color: var(--text); padding: var(--space-4);
+}
+@media (hover: hover) { .debt-row:hover { border-color: var(--muted); } }
+.debt-row:active { transform: translateY(1px); }
+.debt-row__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.debt-row__name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.debt-row__remaining { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.debt-row__bar { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
+.debt-row__fill { display: block; height: 100%; background: var(--accent); }
+.debt-row__meta {
+  display: flex; justify-content: space-between; gap: var(--space-3);
+  font-size: 0.75rem; color: var(--muted);
+}
+.debt-row__overdue { color: var(--expense); font-weight: 600; }
+.debt-row__settled { color: var(--income); font-weight: 600; }
+
+.debt-detail { display: flex; flex-direction: column; gap: var(--space-4); }
+.debt-detail__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.debt-detail__name { margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.015em; }
+.debt-detail__summary { margin: var(--space-1) 0 0; font-size: 0.8rem; color: var(--muted); }
+
+.instalments { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.instalment { border-radius: var(--radius-sm); }
+.instalment__row {
+  display: grid; grid-template-columns: 1.5rem 1fr auto auto;
+  align-items: center; gap: var(--space-3); padding: var(--space-2);
+  font-size: 0.85rem;
+}
+.instalment__number { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.instalment__dates { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+.instalment__due { font-variant-numeric: tabular-nums; }
+.instalment__status { font-size: 0.7rem; color: var(--muted); }
+.instalment__status--overdue { color: var(--expense); font-weight: 600; }
+.instalment__status--paid { color: var(--income); }
+.instalment__amount { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.instalment__actions { display: flex; gap: var(--space-1); }
+.instalment__actions button {
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  border-radius: var(--radius-pill); padding: 0.2rem 0.6rem; font-size: 0.7rem; min-height: 30px;
+}
+.instalment__actions .instalment__pay {
+  background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600;
+}
+.instalment--paid { background: color-mix(in oklab, var(--income) 8%, transparent); }
+.instalment--overdue { background: color-mix(in oklab, var(--expense) 8%, transparent); }
+.instalment__panel {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-3); border-top: 1px solid var(--line);
+}
+.instalment__panel label { display: flex; flex-direction: column; gap: var(--space-1); font-size: 0.8rem; color: var(--muted); }
+.instalment__panel input, .instalment__panel select {
+  font-size: 1rem; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: var(--space-3); min-height: 44px; width: 100%;
+}
+
+@media (min-width: 640px) {
+  .modal__panel--wide { max-width: 640px; }
+}
+
 /* Transfers */
 .accounts__transfer { align-self: flex-start; }
 .transfers { display: flex; flex-direction: column; gap: var(--space-2); }

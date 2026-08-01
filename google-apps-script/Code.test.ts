@@ -243,6 +243,111 @@ describe('transfers', () => {
   });
 });
 
+describe('debts', () => {
+  function withDebt() {
+    const loaded = loadCode({ sheet: new FakeSheet([]) });
+    const debt = post(loaded.api, 'addDebt', {
+      name: 'Motorbike loan', totalAmount: 12000000, instalmentCount: 24, firstDueDate: '2026-09-05'
+    });
+    return { ...loaded, debtId: debt.data.id, debt };
+  }
+
+  it('creates a debt in its own tab', () => {
+    const { sheets, debt } = withDebt();
+    expect(debt.data).toMatchObject({
+      name: 'Motorbike loan', totalAmount: 12000000, instalmentCount: 24, firstDueDate: '2026-09-05'
+    });
+    expect(sheets.get('Debts')!.rows[0]).toEqual(
+      ['id', 'name', 'totalAmount', 'instalmentCount', 'firstDueDate', 'note', 'createdAt']
+    );
+  });
+
+  it('returns debts and instalments from the combined list', () => {
+    const { api, debtId } = withDebt();
+    post(api, 'saveInstalment', { debtId, number: 1, paidDate: '2026-09-05', transactionId: 't1' });
+
+    const listed = get(api, 'list');
+    expect(listed.data.debts).toHaveLength(1);
+    expect(listed.data.debtInstalments).toHaveLength(1);
+  });
+
+  it('creates no debt tabs before any debt exists', () => {
+    const { api, sheets } = loadCode({ sheet: new FakeSheet([]) });
+    expect(get(api, 'list').data.debts).toEqual([]);
+    expect(sheets.has('Debts')).toBe(false);
+    expect(sheets.has('DebtInstalments')).toBe(false);
+  });
+
+  it('updates a debt without disturbing untouched fields', () => {
+    const { api, debtId } = withDebt();
+    const updated = post(api, 'updateDebt', { id: debtId, totalAmount: 13000000 });
+    expect(updated.data).toMatchObject({ name: 'Motorbike loan', totalAmount: 13000000, instalmentCount: 24 });
+  });
+
+  it('upserts an instalment on debt and number rather than duplicating', () => {
+    const { api, debtId } = withDebt();
+    post(api, 'saveInstalment', { debtId, number: 3, amount: 512400 });
+    post(api, 'saveInstalment', { debtId, number: 3, paidDate: '2026-11-05', transactionId: 't9' });
+
+    const rows = get(api, 'list').data.debtInstalments;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ number: 3, paidDate: '2026-11-05', transactionId: 't9' });
+  });
+
+  it('keeps a blank override distinct from zero', () => {
+    // '' means "not overridden"; 0 would be a real instalment of nothing.
+    const { api, debtId } = withDebt();
+    post(api, 'saveInstalment', { debtId, number: 2, paidDate: '2026-10-05' });
+    expect(get(api, 'list').data.debtInstalments[0].amount).toBeNull();
+  });
+
+  it('refuses to delete a debt that has a paid instalment', () => {
+    const { api, debtId } = withDebt();
+    post(api, 'saveInstalment', { debtId, number: 1, paidDate: '2026-09-05', transactionId: 't1' });
+
+    const refused = post(api, 'deleteDebt', { id: debtId });
+    expect(refused.success).toBe(false);
+    expect(refused.data.paid).toBe(1);
+    expect(get(api, 'list').data.debts).toHaveLength(1);
+  });
+
+  it('deletes a debt with only unpaid overrides, clearing them too', () => {
+    const { api, debtId } = withDebt();
+    post(api, 'saveInstalment', { debtId, number: 4, amount: 480000 });
+
+    expect(post(api, 'deleteDebt', { id: debtId })).toEqual({ success: true });
+    expect(get(api, 'list').data.debts).toEqual([]);
+    expect(get(api, 'list').data.debtInstalments).toEqual([]);
+  });
+
+  it('deletes a single instalment row', () => {
+    const { api, debtId } = withDebt();
+    const saved = post(api, 'saveInstalment', { debtId, number: 1, amount: 1 });
+    expect(post(api, 'deleteInstalment', { id: saved.data.id })).toEqual({ success: true });
+    expect(get(api, 'list').data.debtInstalments).toEqual([]);
+  });
+});
+
+describe('add with a supplied id', () => {
+  it('keeps the id it is given', () => {
+    // A debt payment writes the expense and the instalment row together, so
+    // both have to agree on the id before either reaches the sheet.
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    const added = post(api, 'add', {
+      id: 'chosen-1', type: 'expense', amount: 500000, category: 'Motorbike loan', date: '2026-09-05'
+    });
+
+    expect(added.data.id).toBe('chosen-1');
+    expect(post(api, 'delete', { id: 'chosen-1' })).toEqual({ success: true });
+  });
+
+  it('still mints one when none is supplied', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    const added = post(api, 'add', { type: 'expense', amount: 1, category: 'Food', date: '2026-09-05' });
+    expect(added.data.id).toMatch(/^uuid-/);
+  });
+});
+
 describe('import (backup restore)', () => {
   const rows = [
     { id: 'keep-1', type: 'expense', amount: 50000, category: 'Food', date: '2026-08-01', note: '', createdAt: 'ts1' },
