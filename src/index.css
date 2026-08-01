@@ -122,10 +122,13 @@ button:disabled { opacity: 0.5; cursor: default; }
    while the content below is centred, so nothing lines up. */
 .app__header {
   position: sticky; top: 0; z-index: 10; background: var(--bg);
-  padding: var(--space-4) 0 var(--space-3); border-bottom: 1px solid var(--line);
+  padding: calc(var(--space-4) + env(safe-area-inset-top)) 0 var(--space-3);
+  border-bottom: 1px solid var(--line);
 }
 .app__header-inner {
-  max-width: var(--max); margin: 0 auto; padding: 0 var(--space-4);
+  max-width: var(--max); margin: 0 auto;
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
   display: flex; flex-direction: column; gap: var(--space-2);
 }
 .app__header-row { display: flex; align-items: center; justify-content: space-between; }
@@ -137,7 +140,10 @@ button:disabled { opacity: 0.5; cursor: default; }
 }
 .app__main {
   max-width: var(--max); margin: 0 auto;
-  padding: var(--space-5) var(--space-4) calc(56px + env(safe-area-inset-bottom) + var(--space-7));
+  padding-top: var(--space-5);
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-7));
   display: flex; flex-direction: column; gap: var(--space-6);
 }
 
@@ -282,6 +288,8 @@ button:disabled { opacity: 0.5; cursor: default; }
    the content instead of stretching across the whole window. */
 .bottom-nav__inner {
   display: flex; width: 100%; max-width: var(--max); margin: 0 auto;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 .bottom-nav__btn {
   flex: 1; border: none; background: transparent; color: var(--muted);
@@ -527,7 +535,9 @@ button:disabled { opacity: 0.5; cursor: default; }
    640px and the content width the raw calc goes negative and pushed the button
    off the right of the screen. */
 @media (min-width: 640px) {
-  .fab { right: max(1rem, calc((100vw - var(--max)) / 2 + 1rem)); }
+  .fab {
+    right: max(1rem, env(safe-area-inset-right), calc((100vw - var(--max)) / 2 + 1rem));
+  }
 }
 
 /* Modal (full-screen mobile, centered dialog desktop) */
