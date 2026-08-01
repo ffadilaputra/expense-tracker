@@ -475,3 +475,87 @@ describe('delete against a hand-made tab', () => {
     expect(get(api, 'list').data.transactions.map((t: { id: string }) => t.id)).toEqual([a.data.id, c.data.id]);
   });
 });
+
+describe('savings', () => {
+  function withGoal() {
+    const loaded = loadCode({ sheet: new FakeSheet([]) });
+    const goal = post(loaded.api, 'addSaving', {
+      name: 'Umrah', icon: '🕌', targetAmount: 20000000
+    });
+    return { ...loaded, savingId: goal.data.id, goal };
+  }
+
+  it('creates a goal in its own tab', () => {
+    const { sheets, goal } = withGoal();
+    expect(goal.data).toMatchObject({ name: 'Umrah', icon: '🕌', targetAmount: 20000000 });
+    expect(sheets.get('Savings')!.rows[0]).toEqual(
+      ['id', 'name', 'icon', 'targetAmount', 'note', 'createdAt']
+    );
+  });
+
+  it('returns goals and contributions from the combined list', () => {
+    const { api, savingId } = withGoal();
+    post(api, 'addContribution', { savingId, amount: 500000, date: '2026-08-02' });
+
+    const listed = get(api, 'list');
+    expect(listed.data.savings).toHaveLength(1);
+    expect(listed.data.savingContributions).toHaveLength(1);
+  });
+
+  it('creates no savings tabs before a goal exists', () => {
+    const { api, sheets } = loadCode({ sheet: new FakeSheet([]) });
+    expect(get(api, 'list').data.savings).toEqual([]);
+    expect(sheets.has('Savings')).toBe(false);
+    expect(sheets.has('SavingContributions')).toBe(false);
+  });
+
+  it('keeps each contribution as its own row', () => {
+    const { api, savingId } = withGoal();
+    post(api, 'addContribution', { savingId, amount: 100, date: '2026-08-01' });
+    post(api, 'addContribution', { savingId, amount: 200, date: '2026-08-02' });
+
+    expect(get(api, 'list').data.savingContributions).toHaveLength(2);
+  });
+
+  it('updates a target without disturbing the icon', () => {
+    const { api, savingId } = withGoal();
+    const updated = post(api, 'updateSaving', { id: savingId, targetAmount: 25000000 });
+    expect(updated.data).toMatchObject({ name: 'Umrah', icon: '🕌', targetAmount: 25000000 });
+  });
+
+  it('deletes a goal and its contributions together', () => {
+    // Safe to cascade: a contribution is an earmark, not a ledger entry.
+    const { api, savingId } = withGoal();
+    post(api, 'addContribution', { savingId, amount: 100, date: '2026-08-01' });
+    post(api, 'addContribution', { savingId, amount: 200, date: '2026-08-02' });
+
+    expect(post(api, 'deleteSaving', { id: savingId })).toEqual({ success: true });
+    expect(get(api, 'list').data.savings).toEqual([]);
+    expect(get(api, 'list').data.savingContributions).toEqual([]);
+  });
+
+  it('leaves another goal’s contributions alone when one is deleted', () => {
+    const { api, savingId } = withGoal();
+    const other = post(api, 'addSaving', { name: 'Laptop', targetAmount: 9000000 }).data.id;
+    post(api, 'addContribution', { savingId, amount: 100, date: '2026-08-01' });
+    post(api, 'addContribution', { savingId: other, amount: 300, date: '2026-08-01' });
+
+    post(api, 'deleteSaving', { id: savingId });
+    const left = get(api, 'list').data.savingContributions;
+    expect(left).toHaveLength(1);
+    expect(left[0].savingId).toBe(other);
+  });
+
+  it('deletes a single contribution', () => {
+    const { api, savingId } = withGoal();
+    const c = post(api, 'addContribution', { savingId, amount: 100, date: '2026-08-01' });
+    expect(post(api, 'deleteContribution', { id: c.data.id })).toEqual({ success: true });
+    expect(get(api, 'list').data.savingContributions).toEqual([]);
+  });
+
+  it('reports not found for a goal that does not exist', () => {
+    const { api } = withGoal();
+    expect(post(api, 'deleteSaving', { id: 'nope' }).success).toBe(false);
+    expect(post(api, 'updateSaving', { id: 'nope', name: 'x' }).success).toBe(false);
+  });
+});

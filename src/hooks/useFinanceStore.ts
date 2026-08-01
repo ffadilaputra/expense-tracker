@@ -4,13 +4,17 @@ import {
   isLocalId,
   loadCachedAccounts,
   loadCachedDebts,
+  loadCachedContributions,
   loadCachedInstalments,
+  loadCachedSavings,
   loadCachedTransactions,
   loadCachedTransfers,
   makeLocalId,
   saveCachedAccounts,
   saveCachedDebts,
+  saveCachedContributions,
   saveCachedInstalments,
+  saveCachedSavings,
   saveCachedTransactions,
   saveCachedTransfers
 } from '../offline/localCache';
@@ -31,6 +35,8 @@ import type {
   Debt,
   DebtInstalment,
   QueueEntry,
+  Saving,
+  SavingContribution,
   Transaction,
   TransactionFormData,
   Transfer
@@ -43,6 +49,8 @@ export interface FinanceStore {
   debts: Debt[];
   /** Sparse: only instalments that have been edited or paid. */
   debtInstalments: DebtInstalment[];
+  savings: Saving[];
+  savingContributions: SavingContribution[];
   /** First load with nothing cached to show yet. */
   loading: boolean;
   /** A fetch is in flight; cached data is already on screen. */
@@ -66,6 +74,11 @@ export interface FinanceStore {
   saveInstalment: (row: sheetApi.InstalmentSaveData) => Promise<void>;
   payInstalment: (input: PayInstalmentInput) => Promise<void>;
   unpayInstalment: (row: DebtInstalment) => Promise<void>;
+  addSaving: (form: sheetApi.SavingFormData) => Promise<Saving>;
+  updateSaving: (id: string, form: Partial<sheetApi.SavingFormData>) => Promise<void>;
+  deleteSaving: (id: string) => Promise<void>;
+  addContribution: (form: Omit<sheetApi.ContributionFormData, 'id'>) => Promise<void>;
+  deleteContribution: (id: string) => Promise<void>;
   retryFailedChanges: () => void;
   discardFailedChanges: () => void;
   syncNow: () => Promise<void>;
@@ -104,6 +117,10 @@ export default function useFinanceStore(): FinanceStore {
   const [transfers, setTransfers] = useState<Transfer[]>(() => loadCachedTransfers());
   const [debts, setDebts] = useState<Debt[]>(() => loadCachedDebts());
   const [debtInstalments, setInstalments] = useState<DebtInstalment[]>(() => loadCachedInstalments());
+  const [savings, setSavings] = useState<Saving[]>(() => loadCachedSavings());
+  const [savingContributions, setContributions] = useState<SavingContribution[]>(
+    () => loadCachedContributions()
+  );
   // Offline-first: cached rows render instantly, so a full loading state is
   // only honest on a genuinely empty first load. Every other fetch is a
   // background refresh over content the user can already see and read.
@@ -125,8 +142,12 @@ export default function useFinanceStore(): FinanceStore {
   txnsRef.current = transactions;
   accountsRef.current = accounts;
   transfersRef.current = transfers;
+  const savingsRef = useRef(savings);
+  const contributionsRef = useRef(savingContributions);
   debtsRef.current = debts;
   instalmentsRef.current = debtInstalments;
+  savingsRef.current = savings;
+  contributionsRef.current = savingContributions;
 
   const persistTransactions = useCallback((next: Transaction[]) => {
     setTransactions(next);
@@ -153,6 +174,16 @@ export default function useFinanceStore(): FinanceStore {
     saveCachedInstalments(next);
   }, []);
 
+  const persistSavings = useCallback((next: Saving[]) => {
+    setSavings(next);
+    saveCachedSavings(next);
+  }, []);
+
+  const persistContributions = useCallback((next: SavingContribution[]) => {
+    setContributions(next);
+    saveCachedContributions(next);
+  }, []);
+
   const syncCounts = useCallback(() => {
     setPendingCount(loadQueue().length);
     setFailedCount(loadFailed().length);
@@ -167,12 +198,16 @@ export default function useFinanceStore(): FinanceStore {
     const trfById = new Map(remote.transfers.map((t) => [t.id, t]));
     const debtById = new Map(remote.debts.map((d) => [d.id, d]));
     const instById = new Map(remote.debtInstalments.map((i) => [i.id, i]));
+    const savById = new Map(remote.savings.map((x) => [x.id, x]));
+    const contById = new Map(remote.savingContributions.map((c) => [c.id, c]));
 
     const maps: Record<string, Map<string, { id: string }>> = {
       account: accById as never,
       transfer: trfById as never,
       debt: debtById as never,
       debtInstalment: instById as never,
+      saving: savById as never,
+      savingContribution: contById as never,
       transaction: txnById as never
     };
 
@@ -201,7 +236,17 @@ export default function useFinanceStore(): FinanceStore {
     persistTransfers([...trfById.values()]);
     persistDebts([...debtById.values()]);
     persistInstalments([...instById.values()]);
-  }, [persistTransactions, persistAccounts, persistTransfers, persistDebts, persistInstalments]);
+    persistSavings([...savById.values()]);
+    persistContributions([...contById.values()]);
+  }, [
+    persistTransactions,
+    persistAccounts,
+    persistTransfers,
+    persistDebts,
+    persistInstalments,
+    persistSavings,
+    persistContributions
+  ]);
 
   /**
    * Wraps every fetch so the two indicators stay honest no matter which path
@@ -236,6 +281,35 @@ export default function useFinanceStore(): FinanceStore {
           );
         } else if (!isLocalId(entry.id)) {
           await sheetApi.deleteAccount(entry.id);
+        }
+        return;
+      }
+
+      if (entry.entity === 'saving') {
+        if (entry.type === 'add') {
+          const created = await sheetApi.addSaving(entry.payload as sheetApi.SavingFormData);
+          persistSavings(savingsRef.current.map((x) => (x.id === entry.id ? created : x)));
+        } else if (entry.type === 'update') {
+          await sheetApi.updateSaving({ id: entry.id, ...entry.payload });
+          persistSavings(
+            savingsRef.current.map((x) => (x.id === entry.id ? { ...x, _pending: false } : x))
+          );
+        } else if (!isLocalId(entry.id)) {
+          await sheetApi.deleteSaving(entry.id);
+        }
+        return;
+      }
+
+      if (entry.entity === 'savingContribution') {
+        if (entry.type === 'add') {
+          const created = await sheetApi.addContribution(
+            entry.payload as sheetApi.ContributionFormData
+          );
+          persistContributions(
+            contributionsRef.current.map((c) => (c.id === entry.id ? created : c))
+          );
+        } else if (entry.type === 'delete' && !isLocalId(entry.id)) {
+          await sheetApi.deleteContribution(entry.id);
         }
         return;
       }
@@ -291,7 +365,15 @@ export default function useFinanceStore(): FinanceStore {
         await sheetApi.deleteTransaction(entry.id);
       }
     },
-    [persistTransactions, persistAccounts, persistTransfers, persistDebts, persistInstalments]
+    [
+      persistTransactions,
+      persistAccounts,
+      persistTransfers,
+      persistDebts,
+      persistInstalments,
+      persistSavings,
+      persistContributions
+    ]
   );
 
   const syncQueue = useCallback(async () => {
@@ -632,6 +714,100 @@ export default function useFinanceStore(): FinanceStore {
     [deleteTransaction, saveInstalment]
   );
 
+  const addSaving = useCallback(
+    async (form: sheetApi.SavingFormData): Promise<Saving> => {
+      const tempId = makeLocalId();
+      const optimistic: Saving = {
+        ...form,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+        _pending: true
+      };
+      persistSavings([...savingsRef.current, optimistic]);
+      queueChange({ entity: 'saving', type: 'add', id: tempId, payload: { ...form } });
+      return optimistic;
+    },
+    [persistSavings, queueChange]
+  );
+
+  const updateSaving = useCallback(
+    async (id: string, form: Partial<sheetApi.SavingFormData>): Promise<void> => {
+      persistSavings(
+        savingsRef.current.map((x) => (x.id === id ? { ...x, ...form, _pending: true } : x))
+      );
+
+      const queue = loadQueue();
+      const pendingAdd = queue.find((e) => e.entity === 'saving' && e.type === 'add' && e.id === id);
+      if (pendingAdd) {
+        pendingAdd.payload = { ...pendingAdd.payload, ...form };
+        saveQueue(queue);
+        if (navigator.onLine) runSync();
+        return;
+      }
+      queueChange({ entity: 'saving', type: 'update', id, payload: { ...form } });
+    },
+    [persistSavings, queueChange, runSync]
+  );
+
+  /** Contributions go with the goal: they are earmarks nothing else references. */
+  const deleteSaving = useCallback(
+    async (id: string): Promise<void> => {
+      persistSavings(savingsRef.current.filter((x) => x.id !== id));
+      persistContributions(contributionsRef.current.filter((c) => c.savingId !== id));
+
+      const queue = loadQueue();
+      const wasUnsyncedAdd = queue.some(
+        (e) => e.entity === 'saving' && e.type === 'add' && e.id === id
+      );
+      const kept = queue.filter(
+        (e) =>
+          !(e.entity === 'saving' && e.id === id) &&
+          !(e.entity === 'savingContribution' && e.payload?.savingId === id)
+      );
+      if (!wasUnsyncedAdd) kept.push({ entity: 'saving', type: 'delete', id, payload: null });
+      saveQueue(kept);
+      syncCounts();
+      if (navigator.onLine) runSync();
+    },
+    [persistSavings, persistContributions, syncCounts, runSync]
+  );
+
+  const addContribution = useCallback(
+    async (form: Omit<sheetApi.ContributionFormData, 'id'>): Promise<void> => {
+      const tempId = makeLocalId();
+      persistContributions([
+        ...contributionsRef.current,
+        { ...form, id: tempId, createdAt: new Date().toISOString(), _pending: true }
+      ]);
+      queueChange({
+        entity: 'savingContribution',
+        type: 'add',
+        id: tempId,
+        payload: { ...form, id: tempId }
+      });
+    },
+    [persistContributions, queueChange]
+  );
+
+  const deleteContribution = useCallback(
+    async (id: string): Promise<void> => {
+      persistContributions(contributionsRef.current.filter((c) => c.id !== id));
+
+      const queue = loadQueue();
+      const wasUnsyncedAdd = queue.some(
+        (e) => e.entity === 'savingContribution' && e.type === 'add' && e.id === id
+      );
+      const kept = queue.filter((e) => !(e.entity === 'savingContribution' && e.id === id));
+      if (!wasUnsyncedAdd) {
+        kept.push({ entity: 'savingContribution', type: 'delete', id, payload: null });
+      }
+      saveQueue(kept);
+      syncCounts();
+      if (navigator.onLine) runSync();
+    },
+    [persistContributions, syncCounts, runSync]
+  );
+
   const retryFailedChanges = useCallback(() => {
     retryFailed();
     syncCounts();
@@ -682,6 +858,13 @@ export default function useFinanceStore(): FinanceStore {
     saveInstalment,
     payInstalment,
     unpayInstalment,
+    savings,
+    savingContributions,
+    addSaving,
+    updateSaving,
+    deleteSaving,
+    addContribution,
+    deleteContribution,
     retryFailedChanges,
     discardFailedChanges,
     syncNow: syncAndRefresh,

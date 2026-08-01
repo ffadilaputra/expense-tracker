@@ -12,6 +12,8 @@ import {
   normalizeAccount,
   normalizeDebt,
   normalizeInstalment,
+  normalizeContribution,
+  normalizeSaving,
   normalizeTransaction,
   normalizeTransfer
 } from '../utils/normalize';
@@ -20,6 +22,8 @@ import type {
   ApiEnvelope,
   Debt,
   DebtInstalment,
+  Saving,
+  SavingContribution,
   Transaction,
   TransactionFormData,
   Transfer
@@ -50,6 +54,8 @@ export interface SheetSnapshot {
   transfers: Transfer[];
   debts: Debt[];
   debtInstalments: DebtInstalment[];
+  savings: Saving[];
+  savingContributions: SavingContribution[];
 }
 
 interface RawSnapshot {
@@ -58,6 +64,8 @@ interface RawSnapshot {
   transfers?: unknown[];
   debts?: unknown[];
   debtInstalments?: unknown[];
+  savings?: unknown[];
+  savingContributions?: unknown[];
 }
 
 /**
@@ -82,6 +90,10 @@ export async function fetchAll(): Promise<SheetSnapshot> {
     debts: (raw.debts ?? []).map((r) => normalizeDebt(r as Partial<Debt>)),
     debtInstalments: (raw.debtInstalments ?? []).map((r) =>
       normalizeInstalment(r as Partial<DebtInstalment>)
+    ),
+    savings: (raw.savings ?? []).map((r) => normalizeSaving(r as Partial<Saving>)),
+    savingContributions: (raw.savingContributions ?? []).map((r) =>
+      normalizeContribution(r as Partial<SavingContribution>)
     )
   };
 }
@@ -157,6 +169,30 @@ export async function deleteInstalment(id: string): Promise<void> {
   await postAction<null>('deleteInstalment', { id });
 }
 
+export type SavingFormData = Pick<Saving, 'name' | 'icon' | 'targetAmount' | 'note'>;
+
+export async function addSaving(form: SavingFormData): Promise<Saving> {
+  return normalizeSaving(await postAction<Saving>('addSaving', form));
+}
+
+export async function updateSaving(data: Partial<SavingFormData> & { id: string }): Promise<Saving> {
+  return normalizeSaving(await postAction<Saving>('updateSaving', data));
+}
+
+export async function deleteSaving(id: string): Promise<void> {
+  await postAction<null>('deleteSaving', { id });
+}
+
+export type ContributionFormData = Omit<SavingContribution, 'createdAt' | '_pending'>;
+
+export async function addContribution(form: ContributionFormData): Promise<SavingContribution> {
+  return normalizeContribution(await postAction<SavingContribution>('addContribution', form));
+}
+
+export async function deleteContribution(id: string): Promise<void> {
+  await postAction<null>('deleteContribution', { id });
+}
+
 export interface ImportCounts {
   added: number;
   skipped: number;
@@ -195,7 +231,12 @@ async function postAction<T>(
     | 'updateDebt'
     | 'deleteDebt'
     | 'saveInstalment'
-    | 'deleteInstalment',
+    | 'deleteInstalment'
+    | 'addSaving'
+    | 'updateSaving'
+    | 'deleteSaving'
+    | 'addContribution'
+    | 'deleteContribution',
   data: unknown
 ): Promise<T> {
   const apiUrl = requireApiUrl();

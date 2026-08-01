@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { useI18n } from '../i18n/context';
 import Icon from './Icon';
 
-export type Tab = 'transactions' | 'accounts' | 'debts';
+export type Tab = 'transactions' | 'accounts' | 'debts' | 'savings';
 
 interface BottomNavProps {
   tab: Tab;
@@ -41,6 +41,15 @@ function BottomNav({ tab, onChange }: BottomNavProps) {
       >
         <Icon name="debt" />
         {t('navDebts')}
+      </button>
+      <button
+        type="button"
+        className={`bottom-nav__btn ${tab === 'savings' ? 'active' : ''}`}
+        aria-pressed={tab === 'savings'}
+        onClick={() => onChange('savings')}
+      >
+        <Icon name="saving" />
+        {t('navSavings')}
       </button>
       </div>
     </nav>

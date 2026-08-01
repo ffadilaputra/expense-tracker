@@ -30,6 +30,11 @@ var INSTALMENTS_SHEET = 'DebtInstalments';
 var INSTALMENT_HEADERS = [
   'id', 'debtId', 'number', 'amount', 'dueDate', 'paidDate', 'transactionId', 'createdAt'
 ];
+var SAVINGS_SHEET = 'Savings';
+var SAVING_HEADERS = ['id', 'name', 'icon', 'targetAmount', 'note', 'createdAt'];
+// Not sparse, unlike DebtInstalments: every contribution is a distinct event.
+var CONTRIBUTIONS_SHEET = 'SavingContributions';
+var CONTRIBUTION_HEADERS = ['id', 'savingId', 'amount', 'date', 'note', 'createdAt'];
 
 function getSheetFor(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -172,7 +177,9 @@ function listAll() {
     accounts: readTab(ACCOUNTS_SHEET, ACCOUNT_HEADERS, accountRowToObject),
     transfers: readTab(TRANSFERS_SHEET, TRANSFER_HEADERS, transferRowToObject),
     debts: readTab(DEBTS_SHEET, DEBT_HEADERS, debtRowToObject),
-    debtInstalments: readTab(INSTALMENTS_SHEET, INSTALMENT_HEADERS, instalmentRowToObject)
+    debtInstalments: readTab(INSTALMENTS_SHEET, INSTALMENT_HEADERS, instalmentRowToObject),
+    savings: readTab(SAVINGS_SHEET, SAVING_HEADERS, savingRowToObject),
+    savingContributions: readTab(CONTRIBUTIONS_SHEET, CONTRIBUTION_HEADERS, contributionRowToObject)
   };
 }
 
@@ -518,6 +525,103 @@ function deleteInstalment(id) {
   return { success: true };
 }
 
+function savingRowToObject(row) {
+  return {
+    id: String(row[0]),
+    name: String(row[1]),
+    icon: String(row[2] == null ? '' : row[2]),
+    targetAmount: normAmount(row[3]),
+    note: String(row[4] == null ? '' : row[4]),
+    createdAt: String(row[5] == null ? '' : row[5])
+  };
+}
+
+function contributionRowToObject(row) {
+  return {
+    id: String(row[0]),
+    savingId: String(row[1]),
+    amount: normAmount(row[2]),
+    date: normDate(row[3]),
+    note: String(row[4] == null ? '' : row[4]),
+    createdAt: String(row[5] == null ? '' : row[5])
+  };
+}
+
+function addSaving(data) {
+  var sheet = getSheetFor(SAVINGS_SHEET, SAVING_HEADERS);
+  var row = [
+    Utilities.getUuid(),
+    data.name || '',
+    data.icon || '',
+    normAmount(data.targetAmount),
+    data.note || '',
+    new Date().toISOString()
+  ];
+  sheet.appendRow(row);
+  return { success: true, data: savingRowToObject(row) };
+}
+
+function updateSaving(data) {
+  var sheet = getSheetFor(SAVINGS_SHEET, SAVING_HEADERS);
+  var rowIndex = findRowIndexById(sheet, data.id);
+  if (rowIndex === -1) return { success: false, error: 'Saving not found' };
+  var existing = sheet.getRange(rowIndex, 1, 1, SAVING_HEADERS.length).getValues()[0];
+  var updated = [
+    existing[0],
+    data.name != null ? data.name : existing[1],
+    data.icon != null ? data.icon : existing[2],
+    data.targetAmount != null ? normAmount(data.targetAmount) : existing[3],
+    data.note != null ? data.note : existing[4],
+    existing[5]
+  ];
+  sheet.getRange(rowIndex, 1, 1, SAVING_HEADERS.length).setValues([updated]);
+  return { success: true, data: savingRowToObject(updated) };
+}
+
+/**
+ * Deletes the goal and its contributions together. Unlike a debt, whose
+ * payments are real expenses in the ledger, a contribution is only an earmark
+ * that nothing else references - so there is no record left behind to orphan.
+ */
+function deleteSaving(id) {
+  var sheet = getSheetFor(SAVINGS_SHEET, SAVING_HEADERS);
+  var rowIndex = findRowIndexById(sheet, id);
+  if (rowIndex === -1) return { success: false, error: 'Saving not found' };
+
+  var contributions = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONTRIBUTIONS_SHEET);
+  if (contributions) {
+    var values = contributions.getDataRange().getValues();
+    for (var r = values.length - 1; r >= 1; r--) {
+      if (String(values[r][1]) === String(id)) contributions.deleteRow(r + 1);
+    }
+  }
+
+  sheet.deleteRow(rowIndex);
+  return { success: true };
+}
+
+function addContribution(data) {
+  var sheet = getSheetFor(CONTRIBUTIONS_SHEET, CONTRIBUTION_HEADERS);
+  var row = [
+    data.id ? String(data.id) : Utilities.getUuid(),
+    data.savingId || '',
+    normAmount(data.amount),
+    normDate(data.date || new Date()),
+    data.note || '',
+    new Date().toISOString()
+  ];
+  sheet.appendRow(row);
+  return { success: true, data: contributionRowToObject(row) };
+}
+
+function deleteContribution(id) {
+  var sheet = getSheetFor(CONTRIBUTIONS_SHEET, CONTRIBUTION_HEADERS);
+  var rowIndex = findRowIndexById(sheet, id);
+  if (rowIndex === -1) return { success: false, error: 'Contribution not found' };
+  sheet.deleteRow(rowIndex);
+  return { success: true };
+}
+
 function doGet(e) {
   try {
     var params = (e && e.parameter) || {};
@@ -555,6 +659,11 @@ function doPost(e) {
     if (action === 'deleteDebt') return jsonResponse(deleteDebt(data.id));
     if (action === 'saveInstalment') return jsonResponse(saveInstalment(data));
     if (action === 'deleteInstalment') return jsonResponse(deleteInstalment(data.id));
+    if (action === 'addSaving') return jsonResponse(addSaving(data));
+    if (action === 'updateSaving') return jsonResponse(updateSaving(data));
+    if (action === 'deleteSaving') return jsonResponse(deleteSaving(data.id));
+    if (action === 'addContribution') return jsonResponse(addContribution(data));
+    if (action === 'deleteContribution') return jsonResponse(deleteContribution(data.id));
     return jsonResponse({ success: false, error: 'Unknown POST action: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: 'Script error: ' + (err && err.message ? err.message : err) });

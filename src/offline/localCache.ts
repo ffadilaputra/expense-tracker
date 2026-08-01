@@ -4,19 +4,31 @@
 
 import { purge, readFromDisk, scheduleWrite } from './storage';
 import { clearQueues } from './syncQueue';
-import type { Account, Debt, DebtInstalment, Transaction, Transfer } from '../types';
+import type {
+  Account,
+  Debt,
+  DebtInstalment,
+  Saving,
+  SavingContribution,
+  Transaction,
+  Transfer
+} from '../types';
 
 const TRANSACTIONS_KEY = 'finance:transactions';
 const ACCOUNTS_KEY = 'finance:accounts';
 const TRANSFERS_KEY = 'finance:transfers';
 const DEBTS_KEY = 'finance:debts';
 const INSTALMENTS_KEY = 'finance:debt-instalments';
+const SAVINGS_KEY = 'finance:savings';
+const CONTRIBUTIONS_KEY = 'finance:saving-contributions';
 
 let transactionsCache: Transaction[] | null = null;
 let accountsCache: Account[] | null = null;
 let transfersCache: Transfer[] | null = null;
 let debtsCache: Debt[] | null = null;
 let instalmentsCache: DebtInstalment[] | null = null;
+let savingsCache: Saving[] | null = null;
+let contributionsCache: SavingContribution[] | null = null;
 
 export function loadCachedTransactions(): Transaction[] {
   if (transactionsCache === null) transactionsCache = readFromDisk<Transaction[]>(TRANSACTIONS_KEY, []);
@@ -70,6 +82,28 @@ export function saveCachedInstalments(rows: DebtInstalment[]): void {
   scheduleWrite(INSTALMENTS_KEY, rows);
 }
 
+export function loadCachedSavings(): Saving[] {
+  if (savingsCache === null) savingsCache = readFromDisk<Saving[]>(SAVINGS_KEY, []);
+  return savingsCache;
+}
+
+export function saveCachedSavings(savings: Saving[]): void {
+  savingsCache = savings;
+  scheduleWrite(SAVINGS_KEY, savings);
+}
+
+export function loadCachedContributions(): SavingContribution[] {
+  if (contributionsCache === null) {
+    contributionsCache = readFromDisk<SavingContribution[]>(CONTRIBUTIONS_KEY, []);
+  }
+  return contributionsCache;
+}
+
+export function saveCachedContributions(rows: SavingContribution[]): void {
+  contributionsCache = rows;
+  scheduleWrite(CONTRIBUTIONS_KEY, rows);
+}
+
 export function makeLocalId(): string {
   return `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -85,6 +119,11 @@ export function clearCache(): void {
   transfersCache = [];
   debtsCache = [];
   instalmentsCache = [];
-  purge([TRANSACTIONS_KEY, ACCOUNTS_KEY, TRANSFERS_KEY, DEBTS_KEY, INSTALMENTS_KEY]);
+  savingsCache = [];
+  contributionsCache = [];
+  purge([
+    TRANSACTIONS_KEY, ACCOUNTS_KEY, TRANSFERS_KEY,
+    DEBTS_KEY, INSTALMENTS_KEY, SAVINGS_KEY, CONTRIBUTIONS_KEY
+  ]);
   clearQueues();
 }

@@ -14,6 +14,7 @@ import BackupPanel from './components/BackupPanel';
 import BottomNav, { type Tab } from './components/BottomNav';
 import AccountsScreen from './components/AccountsScreen';
 import DebtsScreen from './components/DebtsScreen';
+import SavingsScreen from './components/SavingsScreen';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import Icon from './components/Icon';
 import { useToast } from './components/Toast';
@@ -22,6 +23,7 @@ import { computeBalance, computeTotals } from './utils/summary';
 import { availableMonths, currentMonth, filterByPeriod, type Period } from './utils/period';
 import { computeSpendingTrend } from './utils/spendingTrend';
 import { summarizeAllDebts } from './utils/debt';
+import { summarizeAllSavings } from './utils/savings';
 import {
   applyCategoryFilter,
   deriveCategories,
@@ -29,13 +31,15 @@ import {
   type CategoryChip
 } from './utils/categoryFilter';
 import type { TranslationKey } from './i18n/translations';
-import type { Account, Debt, Transaction, TransactionFormData, Transfer } from './types';
+import type { Account, Debt, Saving, Transaction, TransactionFormData, Transfer } from './types';
 
 const TransactionForm = lazy(() => import('./components/TransactionForm'));
 const AccountForm = lazy(() => import('./components/AccountForm'));
 const TransferForm = lazy(() => import('./components/TransferForm'));
 const DebtForm = lazy(() => import('./components/DebtForm'));
 const DebtDetail = lazy(() => import('./components/DebtDetail'));
+const SavingForm = lazy(() => import('./components/SavingForm'));
+const SavingDetail = lazy(() => import('./components/SavingDetail'));
 
 interface AppShellProps {
   onChangeSheet: () => void;
@@ -53,6 +57,9 @@ type AccountEditor = null | 'new' | Account;
 
 /** Same again for debts. */
 type DebtEditor = null | 'new' | Debt;
+
+/** And for savings goals. */
+type SavingEditor = null | 'new' | Saving;
 
 export default function AppShell({ onChangeSheet }: AppShellProps) {
   const { t } = useI18n();
@@ -84,6 +91,13 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     saveInstalment,
     payInstalment,
     unpayInstalment,
+    savings,
+    savingContributions,
+    addSaving,
+    updateSaving,
+    deleteSaving,
+    addContribution,
+    deleteContribution,
     retryFailedChanges,
     discardFailedChanges,
     syncNow,
@@ -100,6 +114,8 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const [transferOpen, setTransferOpen] = useState(false);
   const [debtEditor, setDebtEditor] = useState<DebtEditor>(null);
   const [openDebtId, setOpenDebtId] = useState<string | null>(null);
+  const [savingEditor, setSavingEditor] = useState<SavingEditor>(null);
+  const [openSavingId, setOpenSavingId] = useState<string | null>(null);
   const today = todayISO();
   const [period, setPeriodState] = useState<Period>(() => currentMonth(today));
   const [category, setCategory] = useState<CategoryChip | null>(null);
@@ -122,6 +138,10 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const debtSummary = useMemo(
     () => summarizeAllDebts(debts, debtInstalments, today),
     [debts, debtInstalments, today]
+  );
+  const savingSummary = useMemo(
+    () => summarizeAllSavings(savings, savingContributions),
+    [savings, savingContributions]
   );
 
   // Resolved once here so the list does not search the accounts array per row.
@@ -228,6 +248,34 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   );
 
   const openDebt = debts.find((d) => d.id === openDebtId) ?? null;
+  const openSaving = savings.find((x) => x.id === openSavingId) ?? null;
+
+  const handleSavingSubmit = useCallback(
+    async (form: Parameters<typeof addSaving>[0]) => {
+      setSubmitting(true);
+      try {
+        if (savingEditor && savingEditor !== 'new') await updateSaving(savingEditor.id, form);
+        else await addSaving(form);
+        setSavingEditor(null);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [savingEditor, addSaving, updateSaving]
+  );
+
+  const handleSavingDelete = useCallback(async () => {
+    if (!savingEditor || savingEditor === 'new') return;
+    if (!confirm(t('savingDeleteConfirm'))) return;
+    setSubmitting(true);
+    try {
+      await deleteSaving(savingEditor.id);
+      setSavingEditor(null);
+      setOpenSavingId(null);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [savingEditor, deleteSaving, t]);
 
   const handleDebtSubmit = useCallback(
     async (form: Parameters<typeof addDebt>[0]) => {
@@ -356,6 +404,13 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
         <PullToRefreshIndicator {...pull} />
         {loading ? (
           <LoadingSkeleton />
+        ) : tab === 'savings' ? (
+          <SavingsScreen
+            savings={savings}
+            contributions={savingContributions}
+            onAdd={() => setSavingEditor('new')}
+            onOpen={(saving) => setOpenSavingId(saving.id)}
+          />
         ) : tab === 'debts' ? (
           <DebtsScreen
             debts={debts}
@@ -384,6 +439,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           period={period}
           todayISO={today}
           debt={debts.length > 0 ? debtSummary : null}
+          saving={savings.length > 0 ? savingSummary : null}
         />
         <SpendingTrendMessage trend={trend} />
         {/* The heatmap gets full history on purpose - its shading percentiles
@@ -435,6 +491,66 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
                 {t('closeBtn')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {openSaving && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label={openSaving.name}>
+          <div className="modal__backdrop" onClick={() => !submitting && setOpenSavingId(null)} />
+          <div className="modal__panel modal__panel--wide">
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <SavingDetail
+                saving={openSaving}
+                contributions={savingContributions}
+                todayISO={today}
+                submitting={submitting}
+                onAddContribution={async (amount, date, note) => {
+                  setSubmitting(true);
+                  try {
+                    await addContribution({ savingId: openSaving.id, amount, date, note });
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                onDeleteContribution={async (id) => {
+                  setSubmitting(true);
+                  try {
+                    await deleteContribution(id);
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                onEditSaving={() => setSavingEditor(openSaving)}
+                onClose={() => setOpenSavingId(null)}
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
+      {savingEditor !== null && (
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={savingEditor === 'new' ? t('savingAddTitle') : t('savingEditTitle')}
+        >
+          <div className="modal__backdrop" onClick={() => !submitting && setSavingEditor(null)} />
+          <div className="modal__panel">
+            <h2 className="modal__title">
+              {savingEditor === 'new' ? t('savingAddTitle') : t('savingEditTitle')}
+            </h2>
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <SavingForm
+                key={savingEditor === 'new' ? 'new' : savingEditor.id}
+                onSubmit={handleSavingSubmit}
+                submitting={submitting}
+                initialValue={savingEditor === 'new' ? undefined : savingEditor}
+                onCancel={() => setSavingEditor(null)}
+                onDelete={savingEditor !== 'new' ? handleSavingDelete : undefined}
+              />
+            </Suspense>
           </div>
         </div>
       )}

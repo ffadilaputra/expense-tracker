@@ -87,10 +87,40 @@ export interface DebtInstalment {
   _pending?: boolean;
 }
 
+/** Money set aside on purpose. Contributions are earmarks, not movements. */
+export interface Saving {
+  id: string;
+  name: string;
+  /** Single emoji, optional. */
+  icon?: string;
+  targetAmount: number;
+  note?: string;
+  createdAt: string;
+  _pending?: boolean;
+}
+
+/** One act of setting money aside toward a goal. Never touches the ledger. */
+export interface SavingContribution {
+  id: string;
+  savingId: string;
+  amount: number;
+  date: string;
+  note?: string;
+  createdAt: string;
+  _pending?: boolean;
+}
+
 export type SyncOperation = 'add' | 'update' | 'delete';
 
 /** Which collection a queued change belongs to. */
-export type SyncEntity = 'transaction' | 'account' | 'transfer' | 'debt' | 'debtInstalment';
+export type SyncEntity =
+  | 'transaction'
+  | 'account'
+  | 'transfer'
+  | 'debt'
+  | 'debtInstalment'
+  | 'saving'
+  | 'savingContribution';
 
 /** A queued change waiting to be pushed to Google Sheets once back online. */
 export interface QueueEntry {

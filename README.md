@@ -49,12 +49,14 @@ Your Google Sheet must have a tab named **Transactions** with the following colu
 | `createdAt`| ISO timestamp (auto-generated)  |
 | `accountId`| Id from the Accounts tab (optional; blank = unassigned) |
 
-Four more tabs are created automatically the first time you need them:
+Six more tabs are created automatically the first time you need them:
 
 **Accounts** — `id`, `name`, `ownerName`, `icon`, `createdAt`
 **Transfers** — `id`, `fromAccountId`, `toAccountId`, `amount`, `date`, `note`, `createdAt`
 **Debts** — `id`, `name`, `totalAmount`, `instalmentCount`, `firstDueDate`, `note`, `createdAt`
 **DebtInstalments** — `id`, `debtId`, `number`, `amount`, `dueDate`, `paidDate`, `transactionId`, `createdAt`
+**Savings** — `id`, `name`, `icon`, `targetAmount`, `note`, `createdAt`
+**SavingContributions** — `id`, `savingId`, `amount`, `date`, `note`, `createdAt`
 
 `DebtInstalments` is sparse: a row appears only for an instalment you have edited or paid, so a
 24-month debt starts with no rows at all. The rest of the schedule is computed from the header.

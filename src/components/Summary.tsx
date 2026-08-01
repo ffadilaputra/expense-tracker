@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { useI18n } from '../i18n/context';
 import { formatIDR } from '../utils/money';
 import type { AllDebtsSummary } from '../utils/debt';
+import type { AllSavingsSummary } from '../utils/savings';
 import { currentMonth, monthName, previousMonth, type Period } from '../utils/period';
 
 interface SummaryProps {
@@ -13,9 +14,11 @@ interface SummaryProps {
   todayISO: string;
   /** Null when no debts exist; the card is then not rendered at all. */
   debt: AllDebtsSummary | null;
+  /** Same again for savings goals. */
+  saving: AllSavingsSummary | null;
 }
 
-function Summary({ balance, income, expense, period, todayISO, debt }: SummaryProps) {
+function Summary({ balance, income, expense, period, todayISO, debt, saving }: SummaryProps) {
   const { t, locale } = useI18n();
 
   function periodName(): string {
@@ -89,6 +92,33 @@ function Summary({ balance, income, expense, period, todayISO, debt }: SummaryPr
               paid: formatIDR(debt.paidAmount),
               total: formatIDR(debt.totalAmount),
               percent: Math.round(debt.paidFraction * 100)
+            })}
+          </span>
+        </article>
+      )}
+
+      {saving && saving.targetAmount > 0 && (
+        <article className="debt-card">
+          <span className="stat-card__label">
+            {t('savingSummaryLabel')}
+            {saving.completeCount > 0 && (
+              <span className="saving-card__reached">
+                {t('savingCompleteCount', { count: saving.completeCount })}
+              </span>
+            )}
+          </span>
+          <span className="debt-card__value">{formatIDR(saving.savedAmount)}</span>
+          <span className="debt-card__bar" aria-hidden="true">
+            <span
+              className="saving-card__fill"
+              style={{ width: `${Math.round(saving.fraction * 100)}%` }}
+            />
+          </span>
+          <span className="debt-card__meta">
+            {t('savingSummaryProgress', {
+              saved: formatIDR(saving.savedAmount),
+              target: formatIDR(saving.targetAmount),
+              percent: Math.round(saving.fraction * 100)
             })}
           </span>
         </article>

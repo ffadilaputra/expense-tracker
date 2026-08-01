@@ -339,6 +339,56 @@ button:disabled { opacity: 0.5; cursor: default; }
   max-width: 46ch; text-wrap: pretty;
 }
 
+/* Savings grid */
+.savings-grid {
+  display: grid; gap: var(--space-3);
+  /* auto-fill with a floor, so the column count follows the width rather than
+     a breakpoint per screen size: two on a phone, more on a desktop. */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.saving-card {
+  display: flex; flex-direction: column; gap: var(--space-2); text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface);
+  color: var(--text); padding: var(--space-4); min-width: 0;
+}
+@media (hover: hover) { .saving-card:hover { border-color: var(--muted); } }
+.saving-card:active { transform: translateY(1px); }
+.saving-card.is-complete { border-color: var(--income); }
+.saving-card__icon { font-size: 1.4rem; line-height: 1; }
+.saving-card__name {
+  font-weight: 600; font-size: 0.9rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.saving-card__bar { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
+.saving-card__fill { display: block; height: 100%; background: var(--income); }
+.saving-card__figures { font-size: 0.8rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.saving-card__target { color: var(--muted); font-weight: 400; }
+.saving-card__percent { font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.saving-card__reached { color: var(--income); font-weight: 600; text-transform: none; letter-spacing: 0; }
+
+/* Saving detail */
+.saving-add {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md);
+}
+.saving-add label { display: flex; flex-direction: column; gap: var(--space-1); font-size: 0.8rem; color: var(--muted); }
+.saving-add input {
+  font-size: 1rem; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: var(--space-3); min-height: 44px; width: 100%;
+}
+.saving-add .amount-input input { border: none; padding-left: 0; }
+.contributions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.contribution {
+  display: grid; grid-template-columns: auto 1fr auto auto;
+  align-items: center; gap: var(--space-3);
+  padding: var(--space-2); border-bottom: 1px solid var(--line); font-size: 0.85rem;
+}
+.contribution__date { color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.contribution__note { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contribution__amount { font-weight: 600; font-variant-numeric: tabular-nums; }
+.contribution__pending { display: block; font-size: 0.65rem; color: var(--muted); font-weight: 400; }
+
 /* Debt card on the summary */
 .debt-card {
   display: flex; flex-direction: column; gap: var(--space-2);

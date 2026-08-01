@@ -4,7 +4,15 @@
 // arrive as a full timestamp. Every field is forced to the type our model
 // promises so a malformed cell can never crash the list or the summary.
 
-import type { Account, Debt, DebtInstalment, Transaction, Transfer } from '../types';
+import type {
+  Account,
+  Debt,
+  DebtInstalment,
+  Saving,
+  SavingContribution,
+  Transaction,
+  Transfer
+} from '../types';
 
 export function str(v: unknown): string {
   return v == null ? '' : String(v);
@@ -76,6 +84,28 @@ export function normalizeInstalment(raw: Partial<DebtInstalment>): DebtInstalmen
     dueDate: raw.dueDate ? str(raw.dueDate).slice(0, 10) : undefined,
     paidDate: raw.paidDate ? str(raw.paidDate).slice(0, 10) : undefined,
     transactionId: raw.transactionId ? str(raw.transactionId) : undefined,
+    createdAt: str(raw.createdAt)
+  };
+}
+
+export function normalizeSaving(raw: Partial<Saving>): Saving {
+  return {
+    id: str(raw.id),
+    name: str(raw.name),
+    icon: raw.icon == null ? '' : str(raw.icon),
+    targetAmount: num(raw.targetAmount),
+    note: raw.note == null ? '' : str(raw.note),
+    createdAt: str(raw.createdAt)
+  };
+}
+
+export function normalizeContribution(raw: Partial<SavingContribution>): SavingContribution {
+  return {
+    id: str(raw.id),
+    savingId: str(raw.savingId),
+    amount: num(raw.amount),
+    date: str(raw.date).slice(0, 10),
+    note: raw.note == null ? '' : str(raw.note),
     createdAt: str(raw.createdAt)
   };
 }
