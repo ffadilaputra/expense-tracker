@@ -72,13 +72,26 @@ transaction. No migration runs over existing data.
 
 ## Sheet schema
 
-Three tabs:
+Each entity gets its **own tab**, inside the single spreadsheet the user already
+connected. Account rows are never written into the `Transactions` tab, and
+accounts are never local-only — they persist to the sheet exactly like
+transactions do, through the same queue.
+
+The Apps Script stays bound to that one spreadsheet via
+`SpreadsheetApp.getActiveSpreadsheet()`, so there is no second file, no
+spreadsheet ID to configure, and no extra authorization scope. `getSheet`
+creates any tab that does not exist yet, so users do not have to make them by
+hand.
 
 | Tab | Columns |
 |---|---|
 | `Transactions` | id, type, amount, category, date, note, createdAt, **accountId** |
 | `Accounts` | id, name, ownerName, icon, createdAt |
 | `Transfers` | id, fromAccountId, toAccountId, amount, date, note, createdAt |
+
+The `Transactions` tab stores only the `accountId` reference — an account's
+name, owner and icon live solely in the `Accounts` tab, so renaming an account
+does not require touching a single transaction row.
 
 `accountId` is **appended** as the eighth column rather than inserted, so
 existing rows keep their positions and existing data is untouched.
