@@ -6,6 +6,7 @@ import SyncStatus from './components/SyncStatus';
 import LanguageSwitch from './components/LanguageSwitch';
 import PeriodBar from './components/PeriodBar';
 import Summary from './components/Summary';
+import SpendingTrendMessage from './components/SpendingTrendMessage';
 import SpendingHeatmap from './components/SpendingHeatmap';
 import CategoryFilter from './components/CategoryFilter';
 import TransactionList from './components/TransactionList';
@@ -13,6 +14,7 @@ import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
 import { computeBalance, computeTotals } from './utils/summary';
 import { currentMonth, filterByPeriod, type Period } from './utils/period';
+import { computeSpendingTrend } from './utils/spendingTrend';
 import {
   applyCategoryFilter,
   deriveCategories,
@@ -64,6 +66,10 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const visible = useMemo(() => applyCategoryFilter(periodScoped, category), [periodScoped, category]);
   const totals = useMemo(() => computeTotals(periodScoped), [periodScoped]);
   const balance = useMemo(() => computeBalance(transactions), [transactions]);
+
+  // Deliberately not period-scoped: this always compares this calendar month
+  // with last, so it means the same thing wherever the user has navigated.
+  const trend = useMemo(() => computeSpendingTrend(transactions, today), [transactions, today]);
 
   /**
    * Every period change goes through here: the new scope may no longer contain
@@ -166,6 +172,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           period={period}
           todayISO={today}
         />
+        <SpendingTrendMessage trend={trend} />
         {/* Full history on purpose: the shading percentiles need the whole
             range to mean anything, and this is the navigator for picking a
             date rather than a view of the current period. */}

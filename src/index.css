@@ -98,6 +98,18 @@ button { font: inherit; cursor: pointer; }
 .summary__stat--income .summary__stat-value { color: var(--income); }
 .summary__stat--expense .summary__stat-value { color: var(--expense); }
 
+/* Spending trend message */
+.trend {
+  margin: 0; display: flex; align-items: baseline; gap: 0.45rem;
+  padding: 0.6rem 0.75rem; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface);
+  font-size: 0.85rem; line-height: 1.4; color: var(--text);
+}
+.trend__arrow { font-weight: 700; }
+.trend--down .trend__arrow { color: var(--income); }
+.trend--up .trend__arrow { color: var(--expense); }
+.trend--same .trend__arrow { color: var(--muted); }
+
 /* Heatmap */
 .heatmap { display: flex; flex-direction: column; gap: 0.5rem; }
 .heatmap__head { display: flex; align-items: center; justify-content: space-between; }

@@ -30,6 +30,12 @@ export const en = {
   filterAllLabel: 'All',
   uncategorized: 'Uncategorized',
 
+  // Spending trend (always this calendar month vs last, whatever period is shown)
+  trendLabel: 'Spending trend',
+  trendDown: 'This month you have spent {amount} less than last month ({percent}% lower).',
+  trendUp: 'This month you have spent {amount} more than last month ({percent}% higher).',
+  trendSame: 'This month you have spent exactly the same as last month.',
+
   // Heatmap
   heatmapTitle: 'Spending',
   heatmapLess: 'less',
@@ -134,6 +140,11 @@ export const id: Record<TranslationKey, string> = {
   categoryFilterLabel: 'Saring menurut kategori',
   filterAllLabel: 'Semua',
   uncategorized: 'Tanpa kategori',
+
+  trendLabel: 'Tren pengeluaran',
+  trendDown: 'Bulan ini kamu menghabiskan {amount} lebih sedikit dari bulan lalu ({percent}% lebih rendah).',
+  trendUp: 'Bulan ini kamu menghabiskan {amount} lebih banyak dari bulan lalu ({percent}% lebih tinggi).',
+  trendSame: 'Bulan ini kamu menghabiskan jumlah yang sama persis dengan bulan lalu.',
 
   heatmapTitle: 'Pengeluaran',
   heatmapLess: 'sedikit',
