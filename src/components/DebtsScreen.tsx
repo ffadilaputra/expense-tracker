@@ -1,7 +1,8 @@
 import { memo, useMemo } from 'react';
 import { useI18n } from '../i18n/context';
 import { formatIDR } from '../utils/money';
-import { buildSchedule, summarizeDebt, type DebtSummary } from '../utils/debt';
+import { summarizeAllDebts, type DebtSummary } from '../utils/debt';
+import DebtProgressChart from './DebtProgressChart';
 import type { Debt, DebtInstalment } from '../types';
 
 interface DebtsScreenProps {
@@ -15,24 +16,11 @@ interface DebtsScreenProps {
 function DebtsScreen({ debts, instalments, todayISO, onAdd, onOpen }: DebtsScreenProps) {
   const { t } = useI18n();
 
-  const rows = useMemo(
-    () =>
-      debts
-        .map((debt) => ({
-          debt,
-          summary: summarizeDebt(buildSchedule(debt, instalments, todayISO))
-        }))
-        // Settled debts drop to the bottom: what is still owed is the point of
-        // the screen, and a paid-off loan is history.
-        .sort((a, b) => {
-          if (a.summary.isSettled !== b.summary.isSettled) return a.summary.isSettled ? 1 : -1;
-          if (a.summary.hasOverdue !== b.summary.hasOverdue) return a.summary.hasOverdue ? -1 : 1;
-          return (a.summary.nextDue?.dueDate ?? '').localeCompare(b.summary.nextDue?.dueDate ?? '');
-        }),
+  const all = useMemo(
+    () => summarizeAllDebts(debts, instalments, todayISO),
     [debts, instalments, todayISO]
   );
-
-  const outstanding = rows.reduce((sum, r) => sum + r.summary.remainingAmount, 0);
+  const rows = all.rows;
 
   return (
     <div className="accounts">
@@ -50,10 +38,20 @@ function DebtsScreen({ debts, instalments, todayISO, onAdd, onOpen }: DebtsScree
       ))}
 
       {debts.length > 0 && (
-        <div className="accounts__total">
-          <span>{t('debtOutstanding')}</span>
-          <span>{formatIDR(outstanding)}</span>
-        </div>
+        <>
+          <div className="accounts__total">
+            <span>{t('debtOutstanding')}</span>
+            <span>{formatIDR(all.remainingAmount)}</span>
+          </div>
+          <p className="accounts__note">
+            {t('debtPaidProgress', {
+              paid: formatIDR(all.paidAmount),
+              total: formatIDR(all.totalAmount),
+              percent: Math.round(all.paidFraction * 100)
+            })}
+          </p>
+          <DebtProgressChart summary={all} />
+        </>
       )}
     </div>
   );

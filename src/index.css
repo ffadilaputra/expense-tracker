@@ -339,6 +339,54 @@ button:disabled { opacity: 0.5; cursor: default; }
   max-width: 46ch; text-wrap: pretty;
 }
 
+/* Debt card on the summary */
+.debt-card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface);
+}
+.debt-card__overdue { color: var(--expense); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.debt-card__value {
+  font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.debt-card__bar { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
+.debt-card__fill { display: block; height: 100%; background: var(--accent); }
+.debt-card__meta { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Debt progress chart */
+.debt-chart { display: flex; flex-direction: column; gap: var(--space-3); }
+.debt-chart__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.debt-chart__title {
+  margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+}
+.debt-chart__legend {
+  list-style: none; margin: 0; padding: 0;
+  display: flex; gap: var(--space-3); font-size: 0.7rem; color: var(--muted);
+}
+.debt-chart__legend li { display: flex; align-items: center; gap: var(--space-1); }
+.debt-chart__key { width: 10px; height: 10px; border-radius: 3px; }
+.debt-chart__key--paid { background: var(--accent); }
+.debt-chart__key--left { background: var(--line); }
+.debt-chart__rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.debt-chart__row { display: flex; flex-direction: column; gap: var(--space-1); }
+.debt-chart__name { font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Width is set inline as a share of the largest debt, so bars are comparable
+   across rows rather than each filling the row. */
+.debt-chart__track {
+  display: block; height: 10px; min-width: 2px;
+  border-radius: var(--radius-pill); background: var(--line); overflow: hidden;
+}
+.debt-chart__paid {
+  display: block; height: 100%; background: var(--accent);
+  border-radius: var(--radius-pill);
+  /* 2px of surface between the two fills, so they read as separate segments
+     rather than one bar changing colour. */
+  box-shadow: 2px 0 0 0 var(--bg);
+}
+.debt-chart__figures { font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
 /* Debts */
 .debt-row {
   display: flex; flex-direction: column; gap: var(--space-2); width: 100%; text-align: left;

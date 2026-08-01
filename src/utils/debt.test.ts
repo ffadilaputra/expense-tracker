@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { addMonthsClamped, buildSchedule, summarizeDebt } from './debt';
+import { addMonthsClamped, buildSchedule, summarizeAllDebts, summarizeDebt } from './debt';
 import type { Debt, DebtInstalment } from '../types';
 
 function debt(partial: Partial<Debt> = {}): Debt {
@@ -175,5 +175,49 @@ describe('summarizeDebt', () => {
     const summary = summarizeDebt(rows);
     expect(summary).toMatchObject({ remainingAmount: 0, isSettled: true, hasOverdue: false });
     expect(summary.nextDue).toBeNull();
+  });
+});
+
+describe('summarizeAllDebts', () => {
+  const TODAY = '2026-10-01';
+
+  function two(): Debt[] {
+    return [
+      debt({ id: 'd1', name: 'Motorbike loan', totalAmount: 1200, instalmentCount: 4 }),
+      debt({ id: 'd2', name: 'Phone', totalAmount: 400, instalmentCount: 4, firstDueDate: '2026-11-05' })
+    ];
+  }
+
+  it('adds up the totals across every debt', () => {
+    const summary = summarizeAllDebts(two(), [], TODAY);
+    expect(summary).toMatchObject({ totalAmount: 1600, paidAmount: 0, remainingAmount: 1600 });
+  });
+
+  it('counts paid instalments toward the paid total', () => {
+    const paid = [
+      { id: 'i1', debtId: 'd1', number: 1, paidDate: '2026-09-05', transactionId: 't1', createdAt: 'x' }
+    ];
+    const summary = summarizeAllDebts(two(), paid, TODAY);
+    expect(summary).toMatchObject({ paidAmount: 300, remainingAmount: 1300, paidFraction: 300 / 1600 });
+  });
+
+  it('counts how many debts have something overdue, not how many instalments', () => {
+    // d1 has two instalments past 1 Oct; it should still count once.
+    expect(summarizeAllDebts(two(), [], TODAY).overdueCount).toBe(1);
+  });
+
+  it('puts settled debts last and overdue ones first', () => {
+    const settled = Array.from({ length: 4 }, (_, i) => ({
+      id: `s${i}`, debtId: 'd1', number: i + 1, paidDate: '2026-09-05',
+      transactionId: `t${i}`, createdAt: 'x'
+    }));
+    const rows = summarizeAllDebts(two(), settled, TODAY).rows;
+    expect(rows.map((r) => r.debt.id)).toEqual(['d2', 'd1']);
+  });
+
+  it('is all zeroes with no debts, and does not divide by zero', () => {
+    expect(summarizeAllDebts([], [], TODAY)).toMatchObject({
+      totalAmount: 0, paidAmount: 0, remainingAmount: 0, paidFraction: 0, overdueCount: 0
+    });
   });
 });

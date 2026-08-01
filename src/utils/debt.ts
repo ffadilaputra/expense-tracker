@@ -125,3 +125,63 @@ export function summarizeDebt(rows: ScheduleRow[]): DebtSummary {
     isSettled: rows.length > 0 && paidCount === rows.length
   };
 }
+
+export interface DebtWithSummary {
+  debt: Debt;
+  summary: DebtSummary;
+}
+
+export interface AllDebtsSummary {
+  /** Everything ever borrowed, across every debt. */
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  /** 0..1 of the total repaid. Zero when there is nothing owed at all. */
+  paidFraction: number;
+  overdueCount: number;
+  /** Unsettled first, overdue ahead of the rest, then by next due date. */
+  rows: DebtWithSummary[];
+}
+
+/**
+ * One pass over every debt, so the card on the transactions screen and the
+ * chart on the debts screen are always reading the same numbers.
+ */
+export function summarizeAllDebts(
+  debts: Debt[],
+  instalments: DebtInstalment[],
+  todayISO: string
+): AllDebtsSummary {
+  const rows = debts.map((debt) => ({
+    debt,
+    summary: summarizeDebt(buildSchedule(debt, instalments, todayISO))
+  }));
+
+  let totalAmount = 0;
+  let paidAmount = 0;
+  let remainingAmount = 0;
+  let overdueCount = 0;
+
+  for (const { summary } of rows) {
+    totalAmount += summary.paidAmount + summary.remainingAmount;
+    paidAmount += summary.paidAmount;
+    remainingAmount += summary.remainingAmount;
+    if (summary.hasOverdue) overdueCount++;
+  }
+
+  rows.sort((a, b) => {
+    // A settled debt is history; what is still owed is the point of the screen.
+    if (a.summary.isSettled !== b.summary.isSettled) return a.summary.isSettled ? 1 : -1;
+    if (a.summary.hasOverdue !== b.summary.hasOverdue) return a.summary.hasOverdue ? -1 : 1;
+    return (a.summary.nextDue?.dueDate ?? '').localeCompare(b.summary.nextDue?.dueDate ?? '');
+  });
+
+  return {
+    totalAmount,
+    paidAmount,
+    remainingAmount,
+    paidFraction: totalAmount > 0 ? paidAmount / totalAmount : 0,
+    overdueCount,
+    rows
+  };
+}

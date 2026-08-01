@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useI18n } from '../i18n/context';
 import { formatIDR } from '../utils/money';
+import type { AllDebtsSummary } from '../utils/debt';
 import { currentMonth, monthName, previousMonth, type Period } from '../utils/period';
 
 interface SummaryProps {
@@ -10,9 +11,11 @@ interface SummaryProps {
   expense: number;
   period: Period;
   todayISO: string;
+  /** Null when no debts exist; the card is then not rendered at all. */
+  debt: AllDebtsSummary | null;
 }
 
-function Summary({ balance, income, expense, period, todayISO }: SummaryProps) {
+function Summary({ balance, income, expense, period, todayISO, debt }: SummaryProps) {
   const { t, locale } = useI18n();
 
   function periodName(): string {
@@ -61,6 +64,35 @@ function Summary({ balance, income, expense, period, todayISO }: SummaryProps) {
           <span className="stat-card__value">{formatIDR(expense)}</span>
         </article>
       </div>
+
+      {/* Below income and expense, and full width, because it is neither: what
+          is still owed is a standing position, not something this period did. */}
+      {debt && debt.totalAmount > 0 && (
+        <article className="debt-card">
+          <span className="stat-card__label">
+            {t('debtOutstanding')}
+            {debt.overdueCount > 0 && (
+              <span className="debt-card__overdue">
+                {t('debtOverdueCount', { count: debt.overdueCount })}
+              </span>
+            )}
+          </span>
+          <span className="debt-card__value">{formatIDR(debt.remainingAmount)}</span>
+          <span className="debt-card__bar" aria-hidden="true">
+            <span
+              className="debt-card__fill"
+              style={{ width: `${Math.round(debt.paidFraction * 100)}%` }}
+            />
+          </span>
+          <span className="debt-card__meta">
+            {t('debtPaidProgress', {
+              paid: formatIDR(debt.paidAmount),
+              total: formatIDR(debt.totalAmount),
+              percent: Math.round(debt.paidFraction * 100)
+            })}
+          </span>
+        </article>
+      )}
     </section>
   );
 }

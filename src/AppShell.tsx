@@ -21,6 +21,7 @@ import { useI18n } from './i18n/context';
 import { computeBalance, computeTotals } from './utils/summary';
 import { availableMonths, currentMonth, filterByPeriod, type Period } from './utils/period';
 import { computeSpendingTrend } from './utils/spendingTrend';
+import { summarizeAllDebts } from './utils/debt';
 import {
   applyCategoryFilter,
   deriveCategories,
@@ -116,6 +117,12 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const trend = useMemo(() => computeSpendingTrend(transactions, today), [transactions, today]);
 
   const months = useMemo(() => availableMonths(transactions, today), [transactions, today]);
+
+  // Shared by the summary card and the debts screen so they cannot disagree.
+  const debtSummary = useMemo(
+    () => summarizeAllDebts(debts, debtInstalments, today),
+    [debts, debtInstalments, today]
+  );
 
   // Resolved once here so the list does not search the accounts array per row.
   const accountLabels = useMemo(
@@ -376,6 +383,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           expense={totals.expense}
           period={period}
           todayISO={today}
+          debt={debts.length > 0 ? debtSummary : null}
         />
         <SpendingTrendMessage trend={trend} />
         {/* The heatmap gets full history on purpose - its shading percentiles
