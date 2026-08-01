@@ -24,20 +24,43 @@ function Summary({ balance, income, expense, period, todayISO }: SummaryProps) {
 
   return (
     <section className="summary" aria-label={t('balanceLabel')}>
-      <div className="summary__balance">
-        <span className="summary__label">{t('balanceLabel')}</span>
+      {/* The balance deliberately gets no card. It is the one all-time figure
+          on the screen, so it sits directly on the page as a headline while the
+          period-scoped figures below are boxed - that contrast is what
+          separates them, rather than a size step alone. */}
+      <div className="summary__hero">
+        <span className="summary__label">
+          {t('balanceLabel')}
+          <span className="summary__scope">{t('balanceAllTime')}</span>
+        </span>
         <span className="summary__amount">{formatIDR(balance)}</span>
+        <span className="summary__rule" aria-hidden="true" />
       </div>
-      <span className="summary__period">{periodName()}</span>
-      <div className="summary__months">
-        <div className="summary__stat summary__stat--income">
-          <span className="summary__stat-label">{t('incomeLabel')}</span>
-          <span className="summary__stat-value">↑ {formatIDR(income)}</span>
-        </div>
-        <div className="summary__stat summary__stat--expense">
-          <span className="summary__stat-label">{t('expenseLabel')}</span>
-          <span className="summary__stat-value">↓ {formatIDR(expense)}</span>
-        </div>
+
+      {/* The caption belongs to the two cards, not to the balance above: they
+          are the only figures the period applies to. */}
+      <p className="summary__period">{periodName()}</p>
+
+      <div className="summary__cards">
+        <article className="stat-card stat-card--income">
+          <span className="stat-card__label">
+            <span className="stat-card__arrow" aria-hidden="true">
+              ↑
+            </span>
+            {t('incomeLabel')}
+          </span>
+          <span className="stat-card__value">{formatIDR(income)}</span>
+        </article>
+
+        <article className="stat-card stat-card--expense">
+          <span className="stat-card__label">
+            <span className="stat-card__arrow" aria-hidden="true">
+              ↓
+            </span>
+            {t('expenseLabel')}
+          </span>
+          <span className="stat-card__value">{formatIDR(expense)}</span>
+        </article>
       </div>
     </section>
   );

@@ -31,6 +31,24 @@
   --heat-4: #1f7a44;
   --radius: 12px;
   --max: 720px;
+
+  /* One 4px-based scale, so every gap in the app is a multiple of the same
+     unit instead of an ad-hoc rem value picked per component. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Radius narrows as elements nest: a chip inside a card inside the page. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --ease: 160ms cubic-bezier(0.2, 0, 0, 1);
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -52,6 +70,28 @@ button { font: inherit; cursor: pointer; }
    changes the family without resizing anything. */
 input, select, textarea { font: inherit; }
 
+/* Keyboard focus was invisible everywhere. One ring, drawn outside the
+   element so it never shifts layout. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* Interactive surfaces respond to hover and to press. The press state is a
+   translate rather than a scale so text stays pixel-aligned while it moves. */
+button, .txn-card, .account-row {
+  transition: background-color var(--ease), border-color var(--ease),
+              color var(--ease), transform var(--ease), opacity var(--ease);
+}
+@media (hover: hover) {
+  button:hover:not(:disabled) { opacity: 0.85; }
+}
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { opacity: 0.5; cursor: default; }
+/* Motion is decoration here; the states still read without it. */
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 1ms !important; animation-duration: 1ms !important; }
+}
+
 .app { min-height: 100dvh; }
 /* The bar itself spans the viewport so its background and bottom border reach
    the edges, while its contents sit in the same centred column as .app__main.
@@ -59,29 +99,30 @@ input, select, textarea { font: inherit; }
    while the content below is centred, so nothing lines up. */
 .app__header {
   position: sticky; top: 0; z-index: 10; background: var(--bg);
-  padding: 1rem 0 0.5rem; border-bottom: 1px solid var(--line);
+  padding: var(--space-4) 0 var(--space-3); border-bottom: 1px solid var(--line);
 }
 .app__header-inner {
-  max-width: var(--max); margin: 0 auto; padding: 0 1rem;
+  max-width: var(--max); margin: 0 auto; padding: 0 var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-2);
 }
 .app__header-row { display: flex; align-items: center; justify-content: space-between; }
-.app__title { margin: 0; font-size: 1.25rem; }
-.app__header-controls { display: flex; align-items: center; gap: 0.5rem; }
+.app__title { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+.app__header-controls { display: flex; align-items: center; gap: var(--space-2); }
 .app__change-sheet {
   border: none; background: transparent; color: var(--muted);
   font-size: 1.5rem; line-height: 1; padding: 0.25rem 0.5rem;
 }
 .app__main {
   max-width: var(--max); margin: 0 auto;
-  padding: 1rem 1rem calc(56px + env(safe-area-inset-bottom) + 6rem);
-  display: flex; flex-direction: column; gap: 1.25rem;
+  padding: var(--space-5) var(--space-4) calc(56px + env(safe-area-inset-bottom) + var(--space-7));
+  display: flex; flex-direction: column; gap: var(--space-6);
 }
 
 /* Period bar */
 .period-bar { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
 .period-bar__btn, .period-bar__month {
   border: 1px solid var(--line); background: var(--surface); color: var(--muted);
-  border-radius: 999px; padding: 0.35rem 0.85rem; font-size: 0.8rem;
+  border-radius: var(--radius-pill); padding: 0.35rem 0.85rem; font-size: 0.8rem;
   min-height: 34px; display: inline-flex; align-items: center; white-space: nowrap;
 }
 .period-bar__btn.active {
@@ -110,7 +151,7 @@ input, select, textarea { font: inherit; }
 .cat-filter__divider { width: 1px; height: 20px; background: var(--line); }
 .cat-filter__chip {
   border: 1px solid var(--line); background: var(--surface); color: var(--text);
-  border-radius: 999px; padding: 0.35rem 0.85rem; font-size: 0.8rem;
+  border-radius: var(--radius-pill); padding: 0.35rem 0.85rem; font-size: 0.8rem;
   min-height: 34px; white-space: nowrap;
 }
 .cat-filter__chip--expense { border-left: 3px solid var(--expense); }
@@ -119,17 +160,56 @@ input, select, textarea { font: inherit; }
   background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600;
 }
 
+/* Every small uppercase label in the app, previously drifting across three
+   sizes and two tracking values. */
+.summary__label, .summary__period, .heatmap__title,
+.txn-group__heading, .accounts__title, .owner-group__name {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+}
+
 /* Summary */
-.summary { display: flex; flex-direction: column; gap: 0.75rem; }
-.summary__label, .summary__stat-label { color: var(--muted); font-size: 0.8rem; }
-.summary__period { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.summary__balance { display: flex; flex-direction: column; gap: 0.15rem; }
-.summary__amount { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
-.summary__months { display: flex; gap: 1.5rem; }
-.summary__stat { display: flex; flex-direction: column; gap: 0.15rem; }
-.summary__stat-value { font-weight: 600; }
-.summary__stat--income .summary__stat-value { color: var(--income); }
-.summary__stat--expense .summary__stat-value { color: var(--expense); }
+.summary { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* Hero balance - the one figure with no container, sized well clear of
+   everything else so hierarchy comes from scale and space rather than colour. */
+.summary__hero { display: flex; flex-direction: column; gap: var(--space-2); }
+.summary__label {
+  display: flex; align-items: baseline; gap: var(--space-2);
+  color: var(--muted); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500;
+}
+/* Says out loud that the balance is not period-scoped, unlike the cards. */
+.summary__scope { text-transform: none; letter-spacing: 0; font-weight: 400; opacity: 0.75; }
+.summary__amount {
+  font-size: clamp(2.25rem, 9vw, 3rem); font-weight: 700;
+  letter-spacing: -0.035em; line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.summary__rule { width: 2.5rem; height: 3px; border-radius: var(--radius-pill); background: var(--accent); }
+
+.summary__period {
+  margin: 0; color: var(--muted); font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500;
+}
+
+.summary__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.stat-card {
+  display: flex; flex-direction: column; gap: var(--space-2); min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface);
+}
+.stat-card__label {
+  display: flex; align-items: center; gap: var(--space-1);
+  color: var(--muted); font-size: 0.75rem; font-weight: 500;
+}
+.stat-card__arrow { font-size: 0.9rem; line-height: 1; }
+.stat-card__value {
+  font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+.stat-card--income .stat-card__arrow, .stat-card--income .stat-card__value { color: var(--income); }
+.stat-card--expense .stat-card__arrow, .stat-card--expense .stat-card__value { color: var(--expense); }
 
 /* Loading skeleton */
 .skeleton { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -177,46 +257,58 @@ input, select, textarea { font: inherit; }
 .bottom-nav__btn.active { color: var(--accent); font-weight: 600; }
 
 /* Accounts screen */
-.accounts { display: flex; flex-direction: column; gap: 1rem; }
+.accounts { display: flex; flex-direction: column; gap: var(--space-5); }
 .accounts__head { display: flex; align-items: center; justify-content: space-between; }
 .accounts__title { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
 .accounts__add {
   border: 1px solid var(--line); background: var(--surface); color: var(--text);
   border-radius: 999px; width: 36px; height: 36px; font-size: 1.2rem; line-height: 1;
 }
-.owner-group { display: flex; flex-direction: column; gap: 0.35rem; }
+.owner-group { display: flex; flex-direction: column; gap: var(--space-2); }
 .owner-group__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .owner-group__name { margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-.owner-group__subtotal { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
-.account-row {
-  display: flex; align-items: center; gap: 0.75rem; width: 100%; text-align: left;
-  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
-  color: var(--text); padding: 0.7rem 0.85rem; min-height: 52px;
+.owner-group__subtotal {
+  font-size: 0.85rem; font-weight: 600; color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
+.account-row {
+  display: flex; align-items: center; gap: var(--space-3); width: 100%; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  color: var(--text); padding: var(--space-3) var(--space-4); min-height: 52px;
+}
+@media (hover: hover) {
+  .account-row:hover { border-color: var(--muted); }
+}
+.account-row:active { transform: translateY(1px); }
 .account-row__icon { font-size: 1.1rem; width: 1.5rem; text-align: center; }
 .account-row__name { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; }
 .account-row__pending { font-size: 0.7rem; color: var(--muted); }
-.account-row__balance { font-weight: 600; font-variant-numeric: tabular-nums; }
+.account-row__balance { font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .account-row__balance.is-negative { color: var(--expense); }
 .accounts__unassigned, .accounts__total {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
-  padding-top: 0.75rem; border-top: 1px solid var(--line);
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4);
+  padding-top: var(--space-3); border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
 }
 .accounts__unassigned { color: var(--muted); font-size: 0.9rem; }
 .accounts__total { font-weight: 700; font-size: 1.05rem; }
-.accounts__note { margin: 0; font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+.accounts__note {
+  margin: 0; font-size: 0.75rem; color: var(--muted); line-height: 1.5;
+  max-width: 46ch; text-wrap: pretty;
+}
 
 /* Transfers */
 .accounts__transfer { align-self: flex-start; }
-.transfers { display: flex; flex-direction: column; gap: 0.35rem; }
+.transfers { display: flex; flex-direction: column; gap: var(--space-2); }
 .transfer-row {
-  display: flex; align-items: center; gap: 0.6rem;
-  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
-  padding: 0.6rem 0.75rem; font-size: 0.85rem;
+  display: flex; align-items: center; gap: var(--space-3);
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  padding: var(--space-3) var(--space-4); font-size: 0.85rem;
 }
 .transfer-row__route { flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem; }
 .transfer-row__date { font-size: 0.7rem; color: var(--muted); }
 .transfer-row__amount { font-weight: 600; font-variant-numeric: tabular-nums; }
+.transfer-row__delete:hover { color: var(--expense); }
 .transfer-row__delete {
   border: none; background: transparent; color: var(--muted);
   font-size: 1.1rem; line-height: 1; padding: 0.2rem 0.35rem; min-height: 32px;
@@ -258,10 +350,11 @@ input, select, textarea { font: inherit; }
 
 /* Spending trend message */
 .trend {
-  margin: 0; display: flex; align-items: baseline; gap: 0.45rem;
-  padding: 0.6rem 0.75rem; border-radius: 10px;
+  margin: 0; display: flex; align-items: baseline; gap: var(--space-2);
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
   border: 1px solid var(--line); background: var(--surface);
-  font-size: 0.85rem; line-height: 1.4; color: var(--text);
+  font-size: 0.85rem; line-height: 1.5; color: var(--text);
+  text-wrap: pretty;
 }
 .trend__arrow { font-weight: 700; }
 .trend--down .trend__arrow { color: var(--income); }
@@ -269,7 +362,7 @@ input, select, textarea { font: inherit; }
 .trend--same .trend__arrow { color: var(--muted); }
 
 /* Heatmap */
-.heatmap { display: flex; flex-direction: column; gap: 0.5rem; }
+.heatmap { display: flex; flex-direction: column; gap: var(--space-3); }
 .heatmap__head { display: flex; align-items: center; justify-content: space-between; }
 .heatmap__title { color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .heatmap__clear { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 0.2rem 0.7rem; font-size: 0.75rem; }
@@ -287,20 +380,31 @@ input, select, textarea { font: inherit; }
 .heatmap__legend { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 0.7rem; }
 
 /* Transaction list */
-.txn-list { display: flex; flex-direction: column; gap: 1.25rem; }
-.txn-list__empty { color: var(--muted); text-align: center; padding: 2rem 1rem; }
-.txn-group { display: flex; flex-direction: column; gap: 0.25rem; }
-.txn-group__heading { margin: 0 0 0.25rem; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-.txn-card {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  width: 100%; text-align: left; background: transparent; border: none;
-  padding: 0.7rem 0; border-bottom: 1px solid var(--line); min-height: 48px;
+.txn-list { display: flex; flex-direction: column; gap: var(--space-5); }
+.txn-list__empty {
+  color: var(--muted); text-align: center; padding: var(--space-7) var(--space-4);
+  text-wrap: balance;
 }
-.txn-card__main { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.txn-group { display: flex; flex-direction: column; gap: var(--space-1); }
+.txn-group__heading { margin: 0 0 var(--space-1); }
+.txn-card {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  width: 100%; text-align: left; background: transparent; border: none;
+  padding: var(--space-3) var(--space-2); border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--line); min-height: 48px;
+}
+/* Negative margin keeps the row's text on the column edge while its hover
+   surface extends past it, so the highlight reads as a full-width row. */
+.txn-card { margin-inline: calc(var(--space-2) * -1); }
+@media (hover: hover) {
+  .txn-card:hover { background: var(--surface); border-bottom-color: transparent; }
+}
+.txn-card:active { transform: translateY(1px); }
+.txn-card__main { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .txn-card__category { font-weight: 600; }
 .txn-card__note { color: var(--muted); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .txn-card__pending { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
-.txn-card__amount { font-weight: 600; white-space: nowrap; }
+.txn-card__amount { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .txn-card__amount--income { color: var(--income); }
 .txn-card__amount--expense { color: var(--expense); }
 
@@ -324,10 +428,10 @@ input, select, textarea { font: inherit; }
 .modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
 .modal__panel {
   position: relative; margin-top: auto; width: 100%; background: var(--surface);
-  border-radius: var(--radius) var(--radius) 0 0; padding: 1.25rem;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: var(--space-5);
   max-height: 92dvh; overflow-y: auto;
 }
-.modal__title { margin: 0 0 1rem; font-size: 1.1rem; }
+.modal__title { margin: 0 0 var(--space-5); font-size: 1.15rem; font-weight: 700; letter-spacing: -0.015em; }
 .modal__loading { color: var(--muted); }
 @media (min-width: 640px) {
   .modal { align-items: center; justify-content: center; }
@@ -335,13 +439,13 @@ input, select, textarea { font: inherit; }
 }
 
 /* Form */
-.txn-form { display: flex; flex-direction: column; gap: 1rem; }
+.txn-form { display: flex; flex-direction: column; gap: var(--space-4); }
 .txn-form label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; color: var(--muted); }
 .txn-form input,
 .txn-form select {
   font-size: 1rem; color: var(--text); background: var(--bg);
-  border: 1px solid var(--line); border-radius: 10px; padding: 0.7rem 0.75rem; min-height: 44px;
-  width: 100%;
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: var(--space-3); min-height: 44px; width: 100%;
 }
 /* Native select chrome ignores the border radius, font and background on most
    platforms, so the control is drawn from scratch and the chevron supplied as
@@ -371,7 +475,7 @@ input, select, textarea { font: inherit; }
 .amount-input { align-items: center; gap: 0.5rem; border: 1px solid var(--line); border-radius: 10px; padding: 0 0.75rem; }
 .amount-input__prefix { color: var(--muted); }
 .amount-input input { border: none; padding-left: 0; font-size: 1.4rem; font-weight: 600; flex: 1; }
-.form-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.form-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; padding-top: var(--space-2); }
 .btn { border-radius: 10px; padding: 0.7rem 1.1rem; min-height: 44px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
 .btn--primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
 .btn--secondary { background: var(--bg); }
@@ -409,7 +513,8 @@ input, select, textarea { font: inherit; }
 .toast__dismiss { border: none; background: transparent; color: var(--muted); }
 
 @media (min-width: 1024px) {
-  .summary__amount { font-size: 2.4rem; }
+  /* .summary__amount is sized by clamp() now; a fixed override here fought it
+     and made the hero smaller on wide screens than on a phone. */
   .heat-cell { width: 14px; height: 14px; }
 }
 

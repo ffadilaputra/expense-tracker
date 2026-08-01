@@ -14,6 +14,7 @@ export const en = {
 
   // Summary
   balanceLabel: 'Balance',
+  balanceAllTime: 'all time',
   incomeLabel: 'Income',
   expenseLabel: 'Expense',
 
@@ -190,6 +191,7 @@ export const id: Record<TranslationKey, string> = {
   loadingForm: 'Memuat formulir...',
 
   balanceLabel: 'Saldo',
+  balanceAllTime: 'sepanjang waktu',
   incomeLabel: 'Pemasukan',
   expenseLabel: 'Pengeluaran',
 
