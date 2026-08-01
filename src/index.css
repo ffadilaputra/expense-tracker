@@ -49,12 +49,17 @@
   --radius-pill: 999px;
 
   --ease: 160ms cubic-bezier(0.2, 0, 0, 1);
+
+  --hero-bg: #111111;
+  --hero-text: #ffffff;
+  --hero-border: transparent;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0f1113; --surface: #16191c; --text: #f3f4f6; --muted: #9aa1a8;
     --line: #23272b; --accent: #f3f4f6; --income: #4ccf7f; --expense: #e57373;
     --heat-0: #23272b; --heat-1: #1e3a2a; --heat-2: #2f6d47; --heat-3: #3fa066; --heat-4: #57cf86;
+    --hero-bg: #1d2126; --hero-text: #f3f4f6; --hero-border: #2b3036;
   }
 }
 * { box-sizing: border-box; }
@@ -171,9 +176,17 @@ button:disabled { opacity: 0.5; cursor: default; }
 /* Summary */
 .summary { display: flex; flex-direction: column; gap: var(--space-4); }
 
-/* Hero balance - the one figure with no container, sized well clear of
-   everything else so hierarchy comes from scale and space rather than colour. */
-.summary__hero { display: flex; flex-direction: column; gap: var(--space-2); }
+/* Hero balance card. Sized and coloured well clear of the two stat cards so
+   the three never read as equal siblings. */
+.summary__hero {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  background: var(--hero-bg); color: var(--hero-text);
+  border: 1px solid var(--hero-border); border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+/* The eyebrow rule sets --muted, which has no contrast on the hero surface. */
+.summary__hero .summary__label { color: inherit; opacity: 0.75; }
+.summary__hero .summary__scope { opacity: 0.8; }
 .summary__label {
   display: flex; align-items: baseline; gap: var(--space-2);
   color: var(--muted); font-size: 0.75rem;
@@ -186,7 +199,10 @@ button:disabled { opacity: 0.5; cursor: default; }
   letter-spacing: -0.035em; line-height: 1.05;
   font-variant-numeric: tabular-nums;
 }
-.summary__rule { width: 2.5rem; height: 3px; border-radius: var(--radius-pill); background: var(--accent); }
+.summary__rule {
+  width: 2.5rem; height: 3px; border-radius: var(--radius-pill);
+  background: currentColor; opacity: 0.85; margin-top: var(--space-1);
+}
 
 .summary__period {
   margin: 0; color: var(--muted); font-size: 0.7rem;
