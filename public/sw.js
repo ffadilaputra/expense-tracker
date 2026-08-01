@@ -7,8 +7,13 @@
 // the Apps Script API (cross-origin) are intentionally left untouched here -
 // offline data handling for those lives in src/offline/localCache.ts instead.
 
-const CACHE_NAME = 'finance-app-shell-v1';
-const PRECACHE_URLS = ['/', '/index.html'];
+// Bumped whenever PRECACHE_URLS changes: activate deletes every cache whose
+// name does not match, which is what makes the new list take effect.
+const CACHE_NAME = 'finance-app-shell-v2';
+// The font is precached rather than left to the fetch handler so the very
+// first offline load already has it, instead of falling back to the system
+// font until some later online visit happens to fetch it.
+const PRECACHE_URLS = ['/', '/index.html', '/fonts/satoshi-variable.woff2'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

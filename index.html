@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#111111" />
+    <!-- Fetched before the CSS that references it, so the swap from the
+         fallback happens as early as possible. crossorigin is required even
+         same-origin: fonts are always fetched in CORS mode, and without it the
+         browser downloads the file twice. -->
+    <link
+      rel="preload"
+      href="/fonts/satoshi-variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon-192.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

@@ -1,3 +1,19 @@
+/* Satoshi, self-hosted. A CDN would be a render-blocking cross-origin request,
+   and the service worker deliberately leaves cross-origin GETs alone, so a
+   CDN font would never be cached and the app would lose its typeface offline.
+   The variable file covers 300-900 in one 42KB request - smaller than the
+   three static weights it replaces, and it gives a real 600 rather than
+   snapping up to 700, which is what the UI actually uses. */
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/satoshi-variable.woff2') format('woff2-variations');
+  font-weight: 300 900;
+  font-style: normal;
+  /* swap, not block: text paints immediately in the fallback rather than
+     staying invisible while the font loads. */
+  font-display: swap;
+}
+
 :root {
   color-scheme: light dark;
   --bg: #ffffff;
@@ -26,10 +42,15 @@
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 button { font: inherit; cursor: pointer; }
+/* Form controls do not inherit the page font on their own, so without this the
+   inputs and selects would keep rendering in the system font next to Satoshi.
+   Every one of them sets its own font-size, so inheriting the shorthand here
+   changes the family without resizing anything. */
+input, select, textarea { font: inherit; }
 
 .app { min-height: 100dvh; }
 .app__header {
