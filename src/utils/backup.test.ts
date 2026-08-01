@@ -29,15 +29,21 @@ describe('buildBackup', () => {
   });
 
   it('survives a round trip through JSON with every field intact', () => {
-    const original = tx({ id: 'x1', note: 'Lunch', category: 'Food', amount: 52500 });
+    const original = tx({ id: 'x1', note: 'Lunch', category: 'Food', amount: 52500, accountId: 'acc-1' });
     const parsed = parseBackup(JSON.stringify(buildBackup([original], [], [])));
 
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
     expect(parsed.data.transactions[0]).toEqual({
       id: 'x1', type: 'expense', amount: 52500, category: 'Food',
-      date: '2026-08-01', note: 'Lunch', createdAt: '2026-08-01T00:00:00.000Z'
+      date: '2026-08-01', note: 'Lunch', createdAt: '2026-08-01T00:00:00.000Z',
+      accountId: 'acc-1'
     });
+  });
+
+  it('carries the account assignment into the backup file', () => {
+    const file = buildBackup([tx({ id: 'x1', accountId: 'acc-1' })], [], []);
+    expect(file.transactions[0].accountId).toBe('acc-1');
   });
 });
 

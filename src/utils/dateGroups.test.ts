@@ -1,4 +1,31 @@
 import { describe, it, expect } from 'vitest';
+import { shortDate, weekdayName } from './dateGroups';
+
+describe('weekdayName', () => {
+  it('names the weekday in English', () => {
+    expect(weekdayName('2026-08-01', 'en')).toBe('Saturday');
+    expect(weekdayName('2026-07-30', 'en')).toBe('Thursday');
+  });
+
+  it('names the weekday in Indonesian', () => {
+    expect(weekdayName('2026-08-01', 'id')).toBe('Sabtu');
+    expect(weekdayName('2026-07-31', 'id')).toBe('Jumat');
+  });
+
+  it('agrees with the UTC weekday for a date at a month boundary', () => {
+    // A calendar date carries no time, so it is parsed and formatted in UTC.
+    // Month ends are where a one-day drift would show up first.
+    expect(weekdayName('2026-07-31', 'en')).toBe('Friday');
+    expect(weekdayName('2026-08-01', 'en')).toBe('Saturday');
+  });
+});
+
+describe('shortDate', () => {
+  it('formats day and month for the locale', () => {
+    expect(shortDate('2026-08-01', 'en')).toBe('Aug 1');
+    expect(shortDate('2026-01-15', 'en')).toBe('Jan 15');
+  });
+});
 import { groupByDate, relativeDay } from './dateGroups';
 import type { Transaction } from '../types';
 

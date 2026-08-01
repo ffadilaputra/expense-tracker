@@ -34,3 +34,23 @@ export function relativeDay(dateISO: string, todayISO: string): 'today' | 'yeste
   if (dateISO === yesterday.toISOString().slice(0, 10)) return 'yesterday';
   return null;
 }
+
+/**
+ * Weekday name for a calendar date, e.g. "Saturday" / "Sabtu".
+ *
+ * Parsed and formatted in UTC on purpose: the stored value is a calendar date
+ * with no time, so reading it in the local zone would shift it a day backwards
+ * for anyone west of UTC and name the wrong weekday.
+ */
+export function weekdayName(dateISO: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' }).format(
+    new Date(`${dateISO}T00:00:00Z`)
+  );
+}
+
+/** Day and month for a calendar date, e.g. "Aug 1" / "1 Agu". */
+export function shortDate(dateISO: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
+    new Date(`${dateISO}T00:00:00Z`)
+  );
+}

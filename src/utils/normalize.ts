@@ -23,7 +23,8 @@ export function normalizeTransaction(raw: Partial<Transaction>): Transaction {
     category: str(raw.category),
     date: str(raw.date).slice(0, 10),
     note: raw.note == null ? '' : str(raw.note),
-    createdAt: str(raw.createdAt)
+    createdAt: str(raw.createdAt),
+    accountId: raw.accountId == null ? '' : str(raw.accountId)
   };
 }
 
