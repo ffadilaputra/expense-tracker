@@ -14,8 +14,21 @@ export const en = {
 
   // Summary
   balanceLabel: 'Balance',
-  monthIncomeLabel: 'Income this month',
-  monthExpenseLabel: 'Expense this month',
+  incomeLabel: 'Income',
+  expenseLabel: 'Expense',
+
+  // Period
+  periodBarLabel: 'Time period',
+  periodLastMonth: 'Last month',
+  periodThisMonth: 'This month',
+  periodPickDate: 'Pick a date',
+  periodOnDate: 'On {date}',
+  periodClearDate: 'Clear date',
+
+  // Category filter
+  categoryFilterLabel: 'Filter by category',
+  filterAllLabel: 'All',
+  uncategorized: 'Uncategorized',
 
   // Heatmap
   heatmapTitle: 'Spending',
@@ -27,6 +40,8 @@ export const en = {
   // List
   emptyTransactions: 'No transactions yet. Tap + to add your first one.',
   emptyDayFiltered: 'No transactions on this day.',
+  emptyPeriodFiltered: 'No transactions in this period.',
+  emptyCategoryFiltered: 'No transactions in this category.',
   relativeToday: 'Today',
   relativeYesterday: 'Yesterday',
   pendingTag: 'Not synced',
@@ -104,8 +119,19 @@ export const id: Record<TranslationKey, string> = {
   loadingForm: 'Memuat formulir...',
 
   balanceLabel: 'Saldo',
-  monthIncomeLabel: 'Pemasukan bulan ini',
-  monthExpenseLabel: 'Pengeluaran bulan ini',
+  incomeLabel: 'Pemasukan',
+  expenseLabel: 'Pengeluaran',
+
+  periodBarLabel: 'Periode waktu',
+  periodLastMonth: 'Bulan lalu',
+  periodThisMonth: 'Bulan ini',
+  periodPickDate: 'Pilih tanggal',
+  periodOnDate: 'Pada {date}',
+  periodClearDate: 'Hapus tanggal',
+
+  categoryFilterLabel: 'Saring menurut kategori',
+  filterAllLabel: 'Semua',
+  uncategorized: 'Tanpa kategori',
 
   heatmapTitle: 'Pengeluaran',
   heatmapLess: 'sedikit',
@@ -115,6 +141,8 @@ export const id: Record<TranslationKey, string> = {
 
   emptyTransactions: 'Belum ada transaksi. Ketuk + untuk menambahkan.',
   emptyDayFiltered: 'Tidak ada transaksi pada hari ini.',
+  emptyPeriodFiltered: 'Tidak ada transaksi pada periode ini.',
+  emptyCategoryFiltered: 'Tidak ada transaksi pada kategori ini.',
   relativeToday: 'Hari ini',
   relativeYesterday: 'Kemarin',
   pendingTag: 'Belum tersinkron',

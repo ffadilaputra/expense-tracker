@@ -1,14 +1,25 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import useTransactionStore from './hooks/useTransactionStore';
 import usePullToRefresh from './hooks/usePullToRefresh';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import SyncStatus from './components/SyncStatus';
 import LanguageSwitch from './components/LanguageSwitch';
+import PeriodBar from './components/PeriodBar';
 import Summary from './components/Summary';
 import SpendingHeatmap from './components/SpendingHeatmap';
+import CategoryFilter from './components/CategoryFilter';
 import TransactionList from './components/TransactionList';
 import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
+import { computeBalance, computeTotals } from './utils/summary';
+import { currentMonth, filterByPeriod, type Period } from './utils/period';
+import {
+  applyCategoryFilter,
+  deriveCategories,
+  sameChip,
+  type CategoryChip
+} from './utils/categoryFilter';
+import type { TranslationKey } from './i18n/translations';
 import type { Transaction, TransactionFormData } from './types';
 
 const TransactionForm = lazy(() => import('./components/TransactionForm'));
@@ -42,8 +53,44 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
 
   const [editor, setEditor] = useState<Editor>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const today = todayISO();
+  const [period, setPeriodState] = useState<Period>(() => currentMonth(today));
+  const [category, setCategory] = useState<CategoryChip | null>(null);
+
+  // One period drives Summary, the category chips, and the list, so there is
+  // never more than one time filter in play.
+  const periodScoped = useMemo(() => filterByPeriod(transactions, period), [transactions, period]);
+  const chips = useMemo(() => deriveCategories(periodScoped), [periodScoped]);
+  const visible = useMemo(() => applyCategoryFilter(periodScoped, category), [periodScoped, category]);
+  const totals = useMemo(() => computeTotals(periodScoped), [periodScoped]);
+  const balance = useMemo(() => computeBalance(transactions), [transactions]);
+
+  /**
+   * Every period change goes through here: the new scope may no longer contain
+   * the selected category, which would leave the list filtered by a chip that
+   * is not on screen. Reconciling in one place keeps the period bar, the
+   * heatmap, and the date input consistent, and does it synchronously rather
+   * than in an effect that would render one frame of the broken state.
+   */
+  const setPeriod = useCallback(
+    (next: Period) => {
+      setPeriodState(next);
+      setCategory((current) => {
+        if (!current) return null;
+        const stillThere = deriveCategories(filterByPeriod(transactions, next));
+        return stillThere.some((c) => sameChip(c, current)) ? current : null;
+      });
+    },
+    [transactions]
+  );
+
+  const emptyKey: TranslationKey = category
+    ? 'emptyCategoryFiltered'
+    : transactions.length === 0
+      ? 'emptyTransactions'
+      : period.kind === 'date'
+        ? 'emptyDayFiltered'
+        : 'emptyPeriodFiltered';
 
   // usePullToRefresh attaches its own window touch listeners internally (see
   // src/hooks/usePullToRefresh.ts) and just returns the current gesture
@@ -111,17 +158,28 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
 
       <main className="app__main">
         <PullToRefreshIndicator {...pull} />
-        <Summary transactions={transactions} todayISO={today} />
+        <PeriodBar period={period} todayISO={today} onChange={setPeriod} />
+        <Summary
+          balance={balance}
+          income={totals.income}
+          expense={totals.expense}
+          period={period}
+          todayISO={today}
+        />
+        {/* Full history on purpose: the shading percentiles need the whole
+            range to mean anything, and this is the navigator for picking a
+            date rather than a view of the current period. */}
         <SpendingHeatmap
           transactions={transactions}
           todayISO={today}
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
+          selectedDate={period.kind === 'date' ? period.date : null}
+          onSelectDate={(date) => setPeriod(date ? { kind: 'date', date } : currentMonth(today))}
         />
+        <CategoryFilter chips={chips} selected={category} onSelect={setCategory} />
         <TransactionList
-          transactions={transactions}
+          transactions={visible}
           todayISO={today}
-          selectedDate={selectedDate}
+          emptyKey={emptyKey}
           onEdit={(txn) => setEditor(txn)}
         />
       </main>

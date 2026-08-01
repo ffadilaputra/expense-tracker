@@ -3,29 +3,23 @@ import { useI18n } from '../i18n/context';
 import { groupByDate, relativeDay } from '../utils/dateGroups';
 import TransactionCard from './TransactionCard';
 import type { Transaction } from '../types';
+import type { TranslationKey } from '../i18n/translations';
 
 interface TransactionListProps {
+  /** Already scoped to the period and category by AppShell. */
   transactions: Transaction[];
   todayISO: string;
-  selectedDate: string | null;
+  /** Which "nothing here" message fits the active filters. */
+  emptyKey: TranslationKey;
   onEdit: (t: Transaction) => void;
 }
 
-function TransactionList({ transactions, todayISO, selectedDate, onEdit }: TransactionListProps) {
+function TransactionList({ transactions, todayISO, emptyKey, onEdit }: TransactionListProps) {
   const { t } = useI18n();
-
-  const visible = useMemo(
-    () => (selectedDate ? transactions.filter((x) => x.date === selectedDate) : transactions),
-    [transactions, selectedDate]
-  );
-  const groups = useMemo(() => groupByDate(visible), [visible]);
+  const groups = useMemo(() => groupByDate(transactions), [transactions]);
 
   if (groups.length === 0) {
-    return (
-      <p className="txn-list__empty">
-        {selectedDate ? t('emptyDayFiltered') : t('emptyTransactions')}
-      </p>
-    );
+    return <p className="txn-list__empty">{t(emptyKey)}</p>;
   }
 
   function labelFor(date: string): string {
