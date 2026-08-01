@@ -19,10 +19,36 @@ var HEADERS = ['id', 'type', 'amount', 'category', 'date', 'note', 'createdAt'];
 function getSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME);
-  if (sheet) return sheet;
-  sheet = ss.insertSheet(SHEET_NAME);
-  sheet.appendRow(HEADERS);
+  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
+  ensureHeaders(sheet);
   return sheet;
+}
+
+/**
+ * Guarantees row 1 is the header row, on every request rather than only when
+ * this script creates the tab. A tab the user made by hand (which the setup
+ * instructions ask for) reaches here with no header at all, and everything
+ * below assumes there is one: getAll slices row 1 off, and findRowIndexById
+ * starts scanning at row 2. Without a header the first transaction is written
+ * into row 1, where it can never be listed, updated or deleted - the row is
+ * visible in the sheet but invisible to the API.
+ *
+ * When row 1 already holds a transaction (a sheet damaged by an earlier
+ * version of this script), inserting the header above it moves that row to 2
+ * and brings it back into reach instead of discarding it.
+ */
+function ensureHeaders(sheet) {
+  if (sheet.getMaxColumns() < HEADERS.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), HEADERS.length - sheet.getMaxColumns());
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    return;
+  }
+  var first = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
+  if (String(first[0]).trim().toLowerCase() === 'id') return;
+  sheet.insertRowBefore(1);
+  sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
 }
 
 function ownerToken() {
