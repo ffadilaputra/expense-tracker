@@ -10,6 +10,7 @@ import SpendingTrendMessage from './components/SpendingTrendMessage';
 import SpendingHeatmap from './components/SpendingHeatmap';
 import CategoryFilter from './components/CategoryFilter';
 import TransactionList from './components/TransactionList';
+import BackupPanel from './components/BackupPanel';
 import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
 import { computeBalance, computeTotals } from './utils/summary';
@@ -50,11 +51,14 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     updateTransaction,
     deleteTransaction,
     syncNow,
+    refresh,
     clearError
   } = useTransactionStore();
 
   const [editor, setEditor] = useState<Editor>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
   const today = todayISO();
   const [period, setPeriodState] = useState<Period>(() => currentMonth(today));
   const [category, setCategory] = useState<CategoryChip | null>(null);
@@ -154,9 +158,44 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           <h1 className="app__title">{t('appTitle')}</h1>
           <div className="app__header-controls">
             <LanguageSwitch />
-            <button type="button" className="app__change-sheet" onClick={onChangeSheet} aria-label={t('changeSheetLabel')}>
-              ⋯
-            </button>
+            <div className="app__menu">
+              <button
+                type="button"
+                className="app__change-sheet"
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-label={t('menuLabel')}
+                aria-expanded={menuOpen}
+              >
+                ⋯
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="app__menu-backdrop" onClick={() => setMenuOpen(false)} />
+                  <div className="app__menu-list" role="menu">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setBackupOpen(true);
+                      }}
+                    >
+                      {t('backupMenuItem')}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onChangeSheet();
+                      }}
+                    >
+                      {t('changeSheetLabel')}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
         <SyncStatus isOnline={isOnline} syncing={syncing} pendingCount={pendingCount} onSyncNow={syncNow} />
@@ -194,6 +233,30 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
       <button type="button" className="fab" aria-label={t('addFabLabel')} onClick={() => setEditor('new')}>
         +
       </button>
+
+      {backupOpen && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label={t('backupTitle')}>
+          <div className="modal__backdrop" onClick={() => setBackupOpen(false)} />
+          <div className="modal__panel">
+            <h2 className="modal__title">{t('backupTitle')}</h2>
+            {/* Accounts and transfers are not built yet, so the file carries
+                empty arrays for them; the format already reserves the keys. */}
+            <BackupPanel
+              transactions={transactions}
+              accounts={[]}
+              transfers={[]}
+              isOnline={isOnline}
+              onClose={() => setBackupOpen(false)}
+              onRestored={refresh}
+            />
+            <div className="form-actions">
+              <button className="btn btn--secondary" type="button" onClick={() => setBackupOpen(false)}>
+                {t('closeBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editor !== null && (
         <div className="modal" role="dialog" aria-modal="true" aria-label={editor === 'new' ? t('addTitle') : t('editTitle')}>

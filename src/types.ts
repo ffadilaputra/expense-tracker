@@ -22,6 +22,35 @@ export interface Transaction {
 /** The fields a user actually edits in the form. */
 export type TransactionFormData = Omit<Transaction, 'id' | 'createdAt' | '_pending'>;
 
+/**
+ * A place money sits — a wallet, bank account or e-wallet. Not built yet; the
+ * shape is fixed by docs/superpowers/specs/2026-08-01-accounts-and-transfers-design.md
+ * and defined here so the backup format can carry accounts from version 1
+ * rather than needing a format bump the day they land.
+ */
+export interface Account {
+  id: string;
+  name: string;
+  /** Free text. Blank groups under "No owner". */
+  ownerName?: string;
+  /** Single emoji, optional. */
+  icon?: string;
+  createdAt: string;
+  _pending?: boolean;
+}
+
+/** Money moved between two of the user's own accounts. Not built yet. */
+export interface Transfer {
+  id: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  date: string;
+  note?: string;
+  createdAt: string;
+  _pending?: boolean;
+}
+
 export type SyncOperation = 'add' | 'update' | 'delete';
 
 /** A queued change waiting to be pushed to Google Sheets once back online. */

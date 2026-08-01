@@ -34,6 +34,91 @@ describe('header row', () => {
   });
 });
 
+describe('import (backup restore)', () => {
+  const rows = [
+    { id: 'keep-1', type: 'expense', amount: 50000, category: 'Food', date: '2026-08-01', note: '', createdAt: 'ts1' },
+    { id: 'keep-2', type: 'income', amount: 900000, category: 'Salary', date: '2026-08-02', note: '', createdAt: 'ts2' }
+  ];
+
+  it('keeps the ids from the file instead of minting new ones', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+
+    const result = post(api, 'import', { transactions: rows });
+    expect(result.data.transactions).toEqual({ added: 2, skipped: 0 });
+    expect(get(api, 'list').data.map((t: { id: string }) => t.id)).toEqual(['keep-1', 'keep-2']);
+  });
+
+  it('skips ids already present rather than duplicating them', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    post(api, 'import', { transactions: rows });
+
+    const second = post(api, 'import', { transactions: rows });
+    expect(second.data.transactions).toEqual({ added: 0, skipped: 2 });
+    expect(get(api, 'list').data).toHaveLength(2);
+  });
+
+  it('merges a file that overlaps existing rows', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    post(api, 'import', { transactions: rows });
+
+    const merged = post(api, 'import', {
+      transactions: [rows[1], { ...rows[0], id: 'new-3' }]
+    });
+    expect(merged.data.transactions).toEqual({ added: 1, skipped: 1 });
+    expect(get(api, 'list').data).toHaveLength(3);
+  });
+
+  it('imports rows the app can then delete', () => {
+    // Ids that round-trip are only useful if the normal actions can find them.
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    post(api, 'import', { transactions: rows });
+
+    expect(post(api, 'delete', { id: 'keep-1' })).toEqual({ success: true });
+    expect(get(api, 'list').data.map((t: { id: string }) => t.id)).toEqual(['keep-2']);
+  });
+
+  it('writes accounts and transfers into their own tabs', () => {
+    const { api, sheets } = loadCode({ sheet: new FakeSheet([]) });
+
+    post(api, 'import', {
+      accounts: [{ id: 'acc-1', name: 'BCA', ownerName: 'Budi', icon: '🏦', createdAt: 'ts' }],
+      transfers: [
+        { id: 'trf-1', fromAccountId: 'acc-1', toAccountId: 'acc-2', amount: 500000, date: '2026-08-01', note: '', createdAt: 'ts' }
+      ]
+    });
+
+    expect(sheets.get('Accounts')!.rows[0]).toEqual(['id', 'name', 'ownerName', 'icon', 'createdAt']);
+    expect(sheets.get('Accounts')!.rows[1]).toEqual(['acc-1', 'BCA', 'Budi', '🏦', 'ts']);
+    expect(sheets.get('Transfers')!.rows[1][1]).toBe('acc-1');
+  });
+
+  it('does not create tabs for collections the file has none of', () => {
+    const { api, sheets } = loadCode({ sheet: new FakeSheet([]) });
+    post(api, 'import', { transactions: rows });
+
+    expect(sheets.has('Accounts')).toBe(false);
+    expect(sheets.has('Transfers')).toBe(false);
+  });
+
+  it('accepts an empty payload without error', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    expect(post(api, 'import', {})).toEqual({
+      success: true,
+      data: {
+        transactions: { added: 0, skipped: 0 },
+        accounts: { added: 0, skipped: 0 },
+        transfers: { added: 0, skipped: 0 }
+      }
+    });
+  });
+
+  it('drops rows with no id, which could never be matched again', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    const result = post(api, 'import', { transactions: [{ amount: 5, type: 'expense' }] });
+    expect(result.data.transactions).toEqual({ added: 0, skipped: 1 });
+  });
+});
+
 describe('delete against a hand-made tab', () => {
   it('deletes the very first transaction added', () => {
     const { api } = loadCode({ sheet: new FakeSheet([]) });

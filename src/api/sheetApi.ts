@@ -8,6 +8,7 @@
 import { getStoredApiUrl } from '../config/apiUrl';
 import { getStoredLocale } from '../i18n/locale';
 import { translate } from '../i18n/translate';
+import { normalizeTransaction } from '../utils/normalize';
 import type { ApiEnvelope, Transaction, TransactionFormData } from '../types';
 
 function requireApiUrl(): string {
@@ -27,27 +28,6 @@ export class ApiRejectionError extends Error {
     super(message);
     this.name = 'ApiRejectionError';
   }
-}
-
-/**
- * Coerce every field to the type our model promises. Google Sheets types cells
- * by content, so `amount` comes back as a JS number (good) but a note typed as
- * "123" could arrive as a number too. We force text fields to strings, force
- * `amount` through Number() with a NaN guard, and clamp `type` to a known value
- * so a malformed cell can never crash the list or summary.
- */
-function normalizeTransaction(raw: Transaction): Transaction {
-  const str = (v: unknown): string => (v == null ? '' : String(v));
-  const amount = Number(raw.amount);
-  return {
-    id: str(raw.id),
-    type: raw.type === 'income' ? 'income' : 'expense',
-    amount: Number.isFinite(amount) ? amount : 0,
-    category: str(raw.category),
-    date: str(raw.date).slice(0, 10),
-    note: raw.note == null ? '' : str(raw.note),
-    createdAt: str(raw.createdAt)
-  };
 }
 
 export async function fetchTransactions(): Promise<Transaction[]> {
@@ -74,8 +54,31 @@ export async function deleteTransaction(id: string): Promise<void> {
   await postAction<null>('delete', { id });
 }
 
+export interface ImportCounts {
+  added: number;
+  skipped: number;
+}
+
+export interface ImportResult {
+  transactions: ImportCounts;
+  accounts: ImportCounts;
+  transfers: ImportCounts;
+}
+
+/**
+ * Restores a backup in one request. The sheet merges by id and reports what it
+ * actually wrote, rather than the client guessing from its own copy.
+ */
+export async function importBackup(data: {
+  transactions: unknown[];
+  accounts: unknown[];
+  transfers: unknown[];
+}): Promise<ImportResult> {
+  return postAction<ImportResult>('import', data);
+}
+
 async function postAction<T>(
-  action: 'add' | 'update' | 'delete',
+  action: 'add' | 'update' | 'delete' | 'import',
   data: unknown
 ): Promise<T> {
   const apiUrl = requireApiUrl();

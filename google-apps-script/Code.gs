@@ -16,12 +16,24 @@
 var SHEET_NAME = 'Transactions';
 var HEADERS = ['id', 'type', 'amount', 'category', 'date', 'note', 'createdAt'];
 
-function getSheet() {
+// Written to only by the backup import for now; the accounts feature will use
+// these same tabs. Neither is created unless there are rows to put in it, so a
+// user who never imports accounts never grows an empty tab.
+var ACCOUNTS_SHEET = 'Accounts';
+var ACCOUNT_HEADERS = ['id', 'name', 'ownerName', 'icon', 'createdAt'];
+var TRANSFERS_SHEET = 'Transfers';
+var TRANSFER_HEADERS = ['id', 'fromAccountId', 'toAccountId', 'amount', 'date', 'note', 'createdAt'];
+
+function getSheetFor(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) sheet = ss.insertSheet(SHEET_NAME);
-  ensureHeaders(sheet);
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) sheet = ss.insertSheet(name);
+  ensureHeaders(sheet, headers);
   return sheet;
+}
+
+function getSheet() {
+  return getSheetFor(SHEET_NAME, HEADERS);
 }
 
 /**
@@ -37,18 +49,18 @@ function getSheet() {
  * version of this script), inserting the header above it moves that row to 2
  * and brings it back into reach instead of discarding it.
  */
-function ensureHeaders(sheet) {
-  if (sheet.getMaxColumns() < HEADERS.length) {
-    sheet.insertColumnsAfter(sheet.getMaxColumns(), HEADERS.length - sheet.getMaxColumns());
+function ensureHeaders(sheet, headers) {
+  if (sheet.getMaxColumns() < headers.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), headers.length - sheet.getMaxColumns());
   }
   if (sheet.getLastRow() === 0) {
-    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     return;
   }
-  var first = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
+  var first = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
   if (String(first[0]).trim().toLowerCase() === 'id') return;
   sheet.insertRowBefore(1);
-  sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 }
 
 function ownerToken() {
@@ -138,6 +150,83 @@ function deleteTransaction(sheet, id) {
   return { success: true };
 }
 
+/**
+ * Merge by id: rows whose id is already in the tab are skipped, the rest are
+ * appended keeping the id they arrive with. Preserving ids is the whole point -
+ * the add action mints a fresh UUID, so importing through it would renumber
+ * every row and re-importing the same file would duplicate instead of skip.
+ *
+ * All new rows go in one setValues rather than a call per row; a restore can
+ * carry thousands and Apps Script charges per call, not per cell.
+ */
+function importRows(sheet, headers, rows, toRow) {
+  var seen = {};
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) seen[String(values[i][0])] = true;
+
+  var pending = [];
+  var skipped = 0;
+  for (var j = 0; j < rows.length; j++) {
+    var id = String((rows[j] && rows[j].id) || '');
+    if (id === '' || seen[id]) {
+      skipped++;
+      continue;
+    }
+    seen[id] = true;
+    pending.push(toRow(rows[j], id));
+  }
+
+  if (pending.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, pending.length, headers.length).setValues(pending);
+  }
+  return { added: pending.length, skipped: skipped };
+}
+
+function transactionToRow(d, id) {
+  return [
+    id,
+    normType(d.type),
+    normAmount(d.amount),
+    d.category || '',
+    normDate(d.date || new Date()),
+    d.note || '',
+    d.createdAt || new Date().toISOString()
+  ];
+}
+
+function accountToRow(d, id) {
+  return [id, d.name || '', d.ownerName || '', d.icon || '', d.createdAt || new Date().toISOString()];
+}
+
+function transferToRow(d, id) {
+  return [
+    id,
+    d.fromAccountId || '',
+    d.toAccountId || '',
+    normAmount(d.amount),
+    normDate(d.date || new Date()),
+    d.note || '',
+    d.createdAt || new Date().toISOString()
+  ];
+}
+
+/** Empty collections never touch their tab, so unused ones are never created. */
+function importInto(name, headers, rows, toRow) {
+  if (!rows || rows.length === 0) return { added: 0, skipped: 0 };
+  return importRows(getSheetFor(name, headers), headers, rows, toRow);
+}
+
+function importData(data) {
+  return {
+    success: true,
+    data: {
+      transactions: importInto(SHEET_NAME, HEADERS, data.transactions, transactionToRow),
+      accounts: importInto(ACCOUNTS_SHEET, ACCOUNT_HEADERS, data.accounts, accountToRow),
+      transfers: importInto(TRANSFERS_SHEET, TRANSFER_HEADERS, data.transfers, transferToRow)
+    }
+  };
+}
+
 function doGet(e) {
   try {
     var params = (e && e.parameter) || {};
@@ -164,6 +253,7 @@ function doPost(e) {
     if (action === 'add') return jsonResponse(addTransaction(sheet, data));
     if (action === 'update') return jsonResponse(updateTransaction(sheet, data));
     if (action === 'delete') return jsonResponse(deleteTransaction(sheet, data.id));
+    if (action === 'import') return jsonResponse(importData(data));
     return jsonResponse({ success: false, error: 'Unknown POST action: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: 'Script error: ' + (err && err.message ? err.message : err) });
