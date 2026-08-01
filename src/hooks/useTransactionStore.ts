@@ -9,6 +9,8 @@ import {
   saveQueue
 } from '../offline/localCache';
 import useOnlineStatus from './useOnlineStatus';
+import { getStoredLocale } from '../i18n/locale';
+import { translate } from '../i18n/translate';
 import type { QueueEntry, Transaction, TransactionFormData } from '../types';
 
 export interface TransactionStore {
@@ -118,8 +120,23 @@ export default function useTransactionStore(): TransactionStore {
           saveQueue(remaining);
           setPendingCount(remaining.length);
           queue = remaining;
-        } catch {
-          break; // still offline / server error — retry later
+        } catch (err) {
+          // The entry stays queued and is retried later either way, but the
+          // two failures mean different things and only one is worth
+          // interrupting the user for.
+          //
+          // A rejection is the server refusing this specific change; retrying
+          // will get the same refusal, so it blocks the queue until something
+          // changes. Report it with the reason, or the queue just accumulates
+          // a pending count with no explanation. A transport failure while
+          // offline is the normal, expected path for an offline-first app and
+          // is left silent - the sync status already shows the pending count.
+          if (err instanceof sheetApi.ApiRejectionError) {
+            setError(translate(getStoredLocale(), 'errSyncRejected', { reason: err.message }));
+          } else if (navigator.onLine) {
+            setError(translate(getStoredLocale(), 'errSyncFailed'));
+          }
+          break;
         }
       }
     } finally {
@@ -128,6 +145,15 @@ export default function useTransactionStore(): TransactionStore {
     }
   }, [remapLocalId, clearPendingFlag]);
 
+  /**
+   * Fire-and-forget sync. syncQueue reports its own per-entry failures, so
+   * anything escaping here is unexpected rather than routine — surface it
+   * instead of dropping it on the floor.
+   */
+  const runSync = useCallback(() => {
+    syncQueue().catch((err: Error) => setError(err.message));
+  }, [syncQueue]);
+
   useEffect(() => {
     setLoading(false);
     if (navigator.onLine) refreshFromRemote().catch((err: Error) => setError(err.message));
@@ -135,8 +161,8 @@ export default function useTransactionStore(): TransactionStore {
   }, []);
 
   useEffect(() => {
-    if (isOnline) syncQueue().catch(() => {});
-  }, [isOnline, syncQueue]);
+    if (isOnline) runSync();
+  }, [isOnline, runSync]);
 
   const addTransaction = useCallback(
     async (form: TransactionFormData): Promise<Transaction> => {
@@ -149,10 +175,10 @@ export default function useTransactionStore(): TransactionStore {
       };
       persist([...txnsRef.current, optimistic]);
       enqueue({ type: 'add', id: tempId, payload: form });
-      if (navigator.onLine) syncQueue().catch(() => {});
+      if (navigator.onLine) runSync();
       return optimistic;
     },
-    [persist, enqueue, syncQueue]
+    [persist, enqueue, runSync]
   );
 
   const updateTransaction = useCallback(
@@ -173,9 +199,9 @@ export default function useTransactionStore(): TransactionStore {
       } else {
         enqueue({ type: 'update', id, payload: form });
       }
-      if (navigator.onLine) syncQueue().catch(() => {});
+      if (navigator.onLine) runSync();
     },
-    [persist, enqueue, syncQueue]
+    [persist, enqueue, runSync]
   );
 
   const deleteTransaction = useCallback(
@@ -187,9 +213,9 @@ export default function useTransactionStore(): TransactionStore {
       if (!wasUnsyncedAdd) filtered.push({ type: 'delete', id, payload: null });
       saveQueue(filtered);
       setPendingCount(filtered.length);
-      if (navigator.onLine) syncQueue().catch(() => {});
+      if (navigator.onLine) runSync();
     },
-    [persist, syncQueue]
+    [persist, runSync]
   );
 
   const syncAndRefresh = useCallback(async () => {

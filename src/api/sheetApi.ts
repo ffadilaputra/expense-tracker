@@ -17,6 +17,19 @@ function requireApiUrl(): string {
 }
 
 /**
+ * The server understood the request and refused it (`success: false`), as
+ * opposed to the request never arriving. The distinction matters to the sync
+ * queue: a refusal will be refused again on every retry, while a network
+ * failure is worth retrying once the connection is back.
+ */
+export class ApiRejectionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ApiRejectionError';
+  }
+}
+
+/**
  * Coerce every field to the type our model promises. Google Sheets types cells
  * by content, so `amount` comes back as a JS number (good) but a note typed as
  * "123" could arrive as a number too. We force text fields to strings, force
@@ -75,7 +88,9 @@ async function postAction<T>(
   });
   const json = (await res.json()) as ApiEnvelope<T>;
   if (!json.success) {
-    throw new Error(json.error ?? translate(getStoredLocale(), 'errActionFailed', { action }));
+    throw new ApiRejectionError(
+      json.error ?? translate(getStoredLocale(), 'errActionFailed', { action })
+    );
   }
   return json.data as T;
 }

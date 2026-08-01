@@ -102,6 +102,8 @@ export const en = {
   errNotConnected: 'Not connected to a Google Sheet yet.',
   errFetchFailed: 'Could not load transactions.',
   errActionFailed: 'The "{action}" action failed.',
+  errSyncRejected: 'A change could not be saved to your sheet: {reason}',
+  errSyncFailed: 'Could not reach your sheet to save pending changes.',
   errVerifyNetwork: 'Could not reach that URL. Check your connection and the URL.',
   errVerifyStatus: 'The URL responded with status {status}.',
   errVerifyInvalid: 'That URL is not a valid deployment for this app.'
@@ -198,6 +200,8 @@ export const id: Record<TranslationKey, string> = {
   errNotConnected: 'Belum terhubung ke Google Sheet.',
   errFetchFailed: 'Tidak dapat memuat transaksi.',
   errActionFailed: 'Aksi "{action}" gagal.',
+  errSyncRejected: 'Sebuah perubahan tidak dapat disimpan ke sheet-mu: {reason}',
+  errSyncFailed: 'Tidak dapat menjangkau sheet-mu untuk menyimpan perubahan tertunda.',
   errVerifyNetwork: 'Tidak dapat menjangkau URL itu. Periksa koneksi dan URL-nya.',
   errVerifyStatus: 'URL merespons dengan status {status}.',
   errVerifyInvalid: 'URL itu bukan deployment yang valid untuk aplikasi ini.'
