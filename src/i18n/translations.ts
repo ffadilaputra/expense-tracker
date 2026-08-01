@@ -36,6 +36,15 @@ export const en = {
   trendUp: 'This month you have spent {amount} more than last month ({percent}% higher).',
   trendSame: 'This month you have spent exactly the same as last month.',
 
+  // Spending chart
+  chartViewLabel: 'Chart view',
+  chartActivity: 'Activity',
+  chartBreakdown: 'Breakdown',
+  breakdownTitle: 'Spending by category',
+  breakdownTotal: 'total spent',
+  breakdownOther: 'Other',
+  breakdownEmpty: 'Nothing spent in this period.',
+
   // Heatmap
   heatmapTitle: 'Spending',
   heatmapLess: 'less',
@@ -209,6 +218,14 @@ export const id: Record<TranslationKey, string> = {
   trendDown: 'Bulan ini kamu menghabiskan {amount} lebih sedikit dari bulan lalu ({percent}% lebih rendah).',
   trendUp: 'Bulan ini kamu menghabiskan {amount} lebih banyak dari bulan lalu ({percent}% lebih tinggi).',
   trendSame: 'Bulan ini kamu menghabiskan jumlah yang sama persis dengan bulan lalu.',
+
+  chartViewLabel: 'Tampilan grafik',
+  chartActivity: 'Aktivitas',
+  chartBreakdown: 'Rincian',
+  breakdownTitle: 'Pengeluaran per kategori',
+  breakdownTotal: 'total pengeluaran',
+  breakdownOther: 'Lainnya',
+  breakdownEmpty: 'Tidak ada pengeluaran pada periode ini.',
 
   heatmapTitle: 'Pengeluaran',
   heatmapLess: 'sedikit',

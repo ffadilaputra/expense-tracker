@@ -7,7 +7,7 @@ import LanguageSwitch from './components/LanguageSwitch';
 import PeriodBar from './components/PeriodBar';
 import Summary from './components/Summary';
 import SpendingTrendMessage from './components/SpendingTrendMessage';
-import SpendingHeatmap from './components/SpendingHeatmap';
+import SpendingChart from './components/SpendingChart';
 import CategoryFilter from './components/CategoryFilter';
 import TransactionList from './components/TransactionList';
 import BackupPanel from './components/BackupPanel';
@@ -325,11 +325,13 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           todayISO={today}
         />
         <SpendingTrendMessage trend={trend} />
-        {/* Full history on purpose: the shading percentiles need the whole
-            range to mean anything, and this is the navigator for picking a
-            date rather than a view of the current period. */}
-        <SpendingHeatmap
+        {/* The heatmap gets full history on purpose - its shading percentiles
+            need the whole range, and it is the navigator for picking a date.
+            The breakdown gets the period, since that is the question it
+            answers. */}
+        <SpendingChart
           transactions={transactions}
+          periodTransactions={periodScoped}
           todayISO={today}
           selectedDate={period.kind === 'date' ? period.date : null}
           onSelectDate={(date) => setPeriod(date ? { kind: 'date', date } : currentMonth(today))}

@@ -53,6 +53,19 @@
   --hero-bg: #111111;
   --hero-text: #ffffff;
   --hero-border: transparent;
+
+  /* Categorical slots for the breakdown ring, in fixed order. Validated with
+     the dataviz palette checker against this surface: worst adjacent CVD
+     dE 9.1 and normal-vision dE 19.6, both clear of their floors. Slots 3, 4
+     and 5 fall under 3:1 contrast here, which is why the legend always carries
+     the name and the figure rather than leaning on colour. */
+  --cat-0: #2a78d6;
+  --cat-1: #eb6834;
+  --cat-2: #1baf7a;
+  --cat-3: #eda100;
+  --cat-4: #e87ba4;
+  --cat-5: #008300;
+  --cat-other: #9aa1a8;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -60,6 +73,11 @@
     --line: #23272b; --accent: #f3f4f6; --income: #4ccf7f; --expense: #e57373;
     --heat-0: #23272b; --heat-1: #1e3a2a; --heat-2: #2f6d47; --heat-3: #3fa066; --heat-4: #57cf86;
     --hero-bg: #1d2126; --hero-text: #f3f4f6; --hero-border: #2b3036;
+    /* The same six hues re-stepped for the dark surface, not an inversion.
+       Validated separately: worst adjacent CVD dE 8.4, and all six clear 3:1. */
+    --cat-0: #3987e5; --cat-1: #d95926; --cat-2: #199e70;
+    --cat-3: #c98500; --cat-4: #d55181; --cat-5: #008300;
+    --cat-other: #6b7280;
   }
 }
 * { box-sizing: border-box; }
@@ -376,6 +394,63 @@ button:disabled { opacity: 0.5; cursor: default; }
 .trend--down .trend__arrow { color: var(--income); }
 .trend--up .trend__arrow { color: var(--expense); }
 .trend--same .trend__arrow { color: var(--muted); }
+
+/* Spending chart shell */
+.spending { display: flex; flex-direction: column; gap: var(--space-3); }
+.spending__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.spending__title {
+  margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+}
+.spending__views { display: flex; gap: var(--space-1); }
+.spending__view {
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  border-radius: var(--radius-pill); padding: 0.2rem 0.7rem; font-size: 0.75rem;
+  min-height: 30px;
+}
+.spending__view.active {
+  background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600;
+}
+
+/* Doughnut */
+.doughnut { display: flex; flex-direction: column; gap: var(--space-4); align-items: center; }
+.doughnut__figure { position: relative; width: min(220px, 60vw); }
+.doughnut__svg { display: block; width: 100%; height: auto; }
+.doughnut__arc { transition: opacity var(--ease); cursor: default; }
+.doughnut__arc--0, .doughnut__swatch--0 { stroke: var(--cat-0); background: var(--cat-0); }
+.doughnut__arc--1, .doughnut__swatch--1 { stroke: var(--cat-1); background: var(--cat-1); }
+.doughnut__arc--2, .doughnut__swatch--2 { stroke: var(--cat-2); background: var(--cat-2); }
+.doughnut__arc--3, .doughnut__swatch--3 { stroke: var(--cat-3); background: var(--cat-3); }
+.doughnut__arc--4, .doughnut__swatch--4 { stroke: var(--cat-4); background: var(--cat-4); }
+.doughnut__arc--5, .doughnut__swatch--5 { stroke: var(--cat-5); background: var(--cat-5); }
+.doughnut__arc--other, .doughnut__swatch--other { stroke: var(--cat-other); background: var(--cat-other); }
+
+.doughnut__centre {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.1rem;
+  pointer-events: none; text-align: center; padding: 0 22%;
+}
+.doughnut__centre-value {
+  font-size: 1rem; font-weight: 700; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere;
+}
+.doughnut__centre-label { font-size: 0.65rem; color: var(--muted); line-height: 1.2; }
+
+.doughnut__legend { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; }
+.doughnut__legend-row {
+  display: grid; grid-template-columns: auto 1fr auto auto;
+  align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-2); border-radius: var(--radius-sm);
+  font-size: 0.85rem; transition: background-color var(--ease);
+}
+.doughnut__legend-row.is-active { background: var(--surface); }
+.doughnut__swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.doughnut__legend-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doughnut__legend-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.doughnut__legend-share {
+  color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums;
+  min-width: 2.5rem; text-align: right;
+}
 
 /* Heatmap */
 .heatmap { display: flex; flex-direction: column; gap: var(--space-3); }

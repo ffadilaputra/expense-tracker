@@ -18,9 +18,8 @@ function SpendingHeatmap({ transactions, todayISO, selectedDate, onSelectDate }:
   const grid = useMemo(() => buildHeatmap(transactions, WEEKS, todayISO), [transactions, todayISO]);
 
   return (
-    <section className="heatmap" aria-label={t('heatmapTitle')}>
+    <div className="heatmap">
       <div className="heatmap__head">
-        <span className="heatmap__title">{t('heatmapTitle')}</span>
         {selectedDate && (
           <button type="button" className="heatmap__clear" onClick={() => onSelectDate(null)}>
             {t('heatmapClearFilter')}
@@ -59,7 +58,7 @@ function SpendingHeatmap({ transactions, todayISO, selectedDate, onSelectDate }:
         <span className="heat-cell heat-cell--l4" />
         <span>{t('heatmapMore')}</span>
       </div>
-    </section>
+    </div>
   );
 }
 
