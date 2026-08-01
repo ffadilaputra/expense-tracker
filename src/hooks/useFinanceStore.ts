@@ -46,6 +46,8 @@ export interface FinanceStore {
   addAccount: (form: sheetApi.AccountFormData) => Promise<Account>;
   updateAccount: (id: string, form: Partial<sheetApi.AccountFormData>) => Promise<void>;
   deleteAccount: (id: string) => Promise<void>;
+  addTransfer: (form: sheetApi.TransferFormData) => Promise<Transfer>;
+  deleteTransfer: (id: string) => Promise<void>;
   retryFailedChanges: () => void;
   discardFailedChanges: () => void;
   syncNow: () => Promise<void>;
@@ -81,8 +83,10 @@ export default function useFinanceStore(): FinanceStore {
   const syncLockRef = useRef(false);
   const txnsRef = useRef(transactions);
   const accountsRef = useRef(accounts);
+  const transfersRef = useRef(transfers);
   txnsRef.current = transactions;
   accountsRef.current = accounts;
+  transfersRef.current = transfers;
 
   const persistTransactions = useCallback((next: Transaction[]) => {
     setTransactions(next);
@@ -92,6 +96,11 @@ export default function useFinanceStore(): FinanceStore {
   const persistAccounts = useCallback((next: Account[]) => {
     setAccounts(next);
     saveCachedAccounts(next);
+  }, []);
+
+  const persistTransfers = useCallback((next: Transfer[]) => {
+    setTransfers(next);
+    saveCachedTransfers(next);
   }, []);
 
   const syncCounts = useCallback(() => {
@@ -105,9 +114,11 @@ export default function useFinanceStore(): FinanceStore {
 
     const txnById = new Map(remote.transactions.map((t) => [t.id, t]));
     const accById = new Map(remote.accounts.map((a) => [a.id, a]));
+    const trfById = new Map(remote.transfers.map((t) => [t.id, t]));
 
     for (const entry of queue) {
-      const map = entry.entity === 'account' ? accById : txnById;
+      const map =
+        entry.entity === 'account' ? accById : entry.entity === 'transfer' ? trfById : txnById;
       if (entry.type === 'delete') {
         map.delete(entry.id);
         continue;
@@ -128,9 +139,8 @@ export default function useFinanceStore(): FinanceStore {
 
     persistTransactions([...txnById.values()]);
     persistAccounts([...accById.values()]);
-    setTransfers(remote.transfers);
-    saveCachedTransfers(remote.transfers);
-  }, [persistTransactions, persistAccounts]);
+    persistTransfers([...trfById.values()]);
+  }, [persistTransactions, persistAccounts, persistTransfers]);
 
   /**
    * Routes one queued change to the API. Delete of a row that never reached the
@@ -154,6 +164,16 @@ export default function useFinanceStore(): FinanceStore {
         return;
       }
 
+      if (entry.entity === 'transfer') {
+        if (entry.type === 'add') {
+          const created = await sheetApi.addTransfer(entry.payload as sheetApi.TransferFormData);
+          persistTransfers(transfersRef.current.map((t) => (t.id === entry.id ? created : t)));
+        } else if (entry.type === 'delete' && !isLocalId(entry.id)) {
+          await sheetApi.deleteTransfer(entry.id);
+        }
+        return;
+      }
+
       if (entry.type === 'add') {
         const created = await sheetApi.addTransaction(entry.payload as TransactionFormData);
         persistTransactions(txnsRef.current.map((t) => (t.id === entry.id ? created : t)));
@@ -166,7 +186,7 @@ export default function useFinanceStore(): FinanceStore {
         await sheetApi.deleteTransaction(entry.id);
       }
     },
-    [persistTransactions, persistAccounts]
+    [persistTransactions, persistAccounts, persistTransfers]
   );
 
   const syncQueue = useCallback(async () => {
@@ -328,6 +348,39 @@ export default function useFinanceStore(): FinanceStore {
     [persistAccounts, syncCounts, runSync]
   );
 
+  const addTransfer = useCallback(
+    async (form: sheetApi.TransferFormData): Promise<Transfer> => {
+      const tempId = makeLocalId();
+      const optimistic: Transfer = {
+        ...form,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+        _pending: true
+      };
+      persistTransfers([...transfersRef.current, optimistic]);
+      queueChange({ entity: 'transfer', type: 'add', id: tempId, payload: { ...form } });
+      return optimistic;
+    },
+    [persistTransfers, queueChange]
+  );
+
+  const deleteTransfer = useCallback(
+    async (id: string): Promise<void> => {
+      persistTransfers(transfersRef.current.filter((t) => t.id !== id));
+
+      const queue = loadQueue();
+      const wasUnsyncedAdd = queue.some(
+        (e) => e.entity === 'transfer' && e.type === 'add' && e.id === id
+      );
+      const kept = queue.filter((e) => !(e.entity === 'transfer' && e.id === id));
+      if (!wasUnsyncedAdd) kept.push({ entity: 'transfer', type: 'delete', id, payload: null });
+      saveQueue(kept);
+      syncCounts();
+      if (navigator.onLine) runSync();
+    },
+    [persistTransfers, syncCounts, runSync]
+  );
+
   const retryFailedChanges = useCallback(() => {
     retryFailed();
     syncCounts();
@@ -367,6 +420,8 @@ export default function useFinanceStore(): FinanceStore {
     addAccount,
     updateAccount,
     deleteAccount,
+    addTransfer,
+    deleteTransfer,
     retryFailedChanges,
     discardFailedChanges,
     syncNow: syncAndRefresh,

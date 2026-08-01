@@ -15,9 +15,19 @@ interface AccountsScreenProps {
   transfers: Transfer[];
   onAdd: () => void;
   onEdit: (account: Account) => void;
+  onTransfer: () => void;
+  onDeleteTransfer: (transfer: Transfer) => void;
 }
 
-function AccountsScreen({ accounts, transactions, transfers, onAdd, onEdit }: AccountsScreenProps) {
+function AccountsScreen({
+  accounts,
+  transactions,
+  transfers,
+  onAdd,
+  onEdit,
+  onTransfer,
+  onDeleteTransfer
+}: AccountsScreenProps) {
   const { t } = useI18n();
 
   const groups = useMemo(
@@ -28,6 +38,16 @@ function AccountsScreen({ accounts, transactions, transfers, onAdd, onEdit }: Ac
   const total = useMemo(
     () => totalAcrossAccounts(accounts, transactions, transfers),
     [accounts, transactions, transfers]
+  );
+
+  const accountNames = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a.name])),
+    [accounts]
+  );
+  // Most recent first: a transfer history is read newest-down.
+  const recentTransfers = useMemo(
+    () => [...transfers].sort((a, b) => b.date.localeCompare(a.date)),
+    [transfers]
   );
 
   return (
@@ -86,6 +106,45 @@ function AccountsScreen({ accounts, transactions, transfers, onAdd, onEdit }: Ac
       </div>
 
       <p className="accounts__note">{t('accountNoOpeningBalance')}</p>
+
+      {/* Transfers move money between accounts, so they are never income or
+          expense and never appear in the transaction list. This is their only
+          history. */}
+      {accounts.length >= 2 && (
+        <button type="button" className="btn btn--secondary accounts__transfer" onClick={onTransfer}>
+          {t('transferAction')}
+        </button>
+      )}
+
+      {recentTransfers.length > 0 && (
+        <section className="transfers">
+          <h3 className="owner-group__name">{t('transferHistory')}</h3>
+          {recentTransfers.map((transfer) => (
+            <div className="transfer-row" key={transfer.id}>
+              <span className="transfer-row__route">
+                <span aria-hidden="true">⇄ </span>
+                {accountNames.get(transfer.fromAccountId) ?? t('accountUnassigned')}
+                {' → '}
+                {accountNames.get(transfer.toAccountId) ?? t('accountUnassigned')}
+                <span className="transfer-row__date">{transfer.date}</span>
+                {transfer.note ? <span className="transfer-row__date">{transfer.note}</span> : null}
+                {transfer._pending ? (
+                  <span className="transfer-row__date">{t('pendingTag')}</span>
+                ) : null}
+              </span>
+              <span className="transfer-row__amount">{formatIDR(transfer.amount)}</span>
+              <button
+                type="button"
+                className="transfer-row__delete"
+                aria-label={t('deleteBtn')}
+                onClick={() => onDeleteTransfer(transfer)}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 }

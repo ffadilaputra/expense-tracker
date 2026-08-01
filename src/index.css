@@ -141,6 +141,22 @@ button { font: inherit; cursor: pointer; }
 .accounts__total { font-weight: 700; font-size: 1.05rem; }
 .accounts__note { margin: 0; font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
 
+/* Transfers */
+.accounts__transfer { align-self: flex-start; }
+.transfers { display: flex; flex-direction: column; gap: 0.35rem; }
+.transfer-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  padding: 0.6rem 0.75rem; font-size: 0.85rem;
+}
+.transfer-row__route { flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem; }
+.transfer-row__date { font-size: 0.7rem; color: var(--muted); }
+.transfer-row__amount { font-weight: 600; font-variant-numeric: tabular-nums; }
+.transfer-row__delete {
+  border: none; background: transparent; color: var(--muted);
+  font-size: 1.1rem; line-height: 1; padding: 0.2rem 0.35rem; min-height: 32px;
+}
+
 /* Transaction card account label */
 .txn-card__account { font-size: 0.7rem; color: var(--muted); margin-left: 0.4rem; }
 

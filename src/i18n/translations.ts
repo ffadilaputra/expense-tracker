@@ -97,6 +97,16 @@ export const en = {
   accountNoOpeningBalance:
     'Balances count only what you have recorded here — they do not include money an account already held.',
 
+  // Transfers
+  transferAction: '⇄ Transfer between accounts',
+  transferTitle: 'Transfer',
+  transferFrom: 'From',
+  transferTo: 'To',
+  transferSubmit: 'Transfer',
+  transferHistory: 'Transfers',
+  transferSameAccount: 'Pick two different accounts.',
+  transferDeleteConfirm: 'Delete this transfer?',
+
   // Failed changes
   failedCount: '{count} change(s) the sheet refused',
   failedRetry: 'Try again',
@@ -255,6 +265,15 @@ export const id: Record<TranslationKey, string> = {
   accountDeleteConfirm: 'Hapus akun ini?',
   accountNoOpeningBalance:
     'Saldo hanya menghitung yang kamu catat di sini — belum termasuk uang yang sudah ada sebelumnya.',
+
+  transferAction: '⇄ Transfer antar akun',
+  transferTitle: 'Transfer',
+  transferFrom: 'Dari',
+  transferTo: 'Ke',
+  transferSubmit: 'Transfer',
+  transferHistory: 'Transfer',
+  transferSameAccount: 'Pilih dua akun yang berbeda.',
+  transferDeleteConfirm: 'Hapus transfer ini?',
 
   failedCount: '{count} perubahan ditolak oleh sheet',
   failedRetry: 'Coba lagi',

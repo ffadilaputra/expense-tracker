@@ -170,6 +170,79 @@ describe('account CRUD', () => {
   });
 });
 
+describe('transfers', () => {
+  function withTwoAccounts() {
+    const loaded = loadCode({ sheet: new FakeSheet([]) });
+    const a = post(loaded.api, 'addAccount', { name: 'BCA' }).data.id;
+    const b = post(loaded.api, 'addAccount', { name: 'Cash' }).data.id;
+    return { ...loaded, a, b };
+  }
+
+  it('records a transfer in the Transfers tab', () => {
+    const { api, sheets, a, b } = withTwoAccounts();
+
+    const created = post(api, 'addTransfer', {
+      fromAccountId: a, toAccountId: b, amount: 500000, date: '2026-08-01', note: 'Top up'
+    });
+
+    expect(created.success).toBe(true);
+    expect(created.data).toMatchObject({ fromAccountId: a, toAccountId: b, amount: 500000, note: 'Top up' });
+    expect(sheets.get('Transfers')!.rows[1][1]).toBe(a);
+  });
+
+  it('returns transfers from the combined list', () => {
+    const { api, a, b } = withTwoAccounts();
+    post(api, 'addTransfer', { fromAccountId: a, toAccountId: b, amount: 1, date: '2026-08-01' });
+
+    expect(get(api, 'list').data.transfers).toHaveLength(1);
+  });
+
+  it('refuses a transfer to the same account', () => {
+    const { api, a } = withTwoAccounts();
+
+    const refused = post(api, 'addTransfer', {
+      fromAccountId: a, toAccountId: a, amount: 500000, date: '2026-08-01'
+    });
+    expect(refused.success).toBe(false);
+    expect(get(api, 'list').data.transfers).toEqual([]);
+  });
+
+  it('refuses a transfer with a missing end', () => {
+    const { api, a } = withTwoAccounts();
+    expect(post(api, 'addTransfer', { fromAccountId: a, amount: 1, date: '2026-08-01' }).success).toBe(false);
+  });
+
+  it('refuses a zero or negative amount', () => {
+    const { api, a, b } = withTwoAccounts();
+    expect(post(api, 'addTransfer', { fromAccountId: a, toAccountId: b, amount: 0 }).success).toBe(false);
+    expect(post(api, 'addTransfer', { fromAccountId: a, toAccountId: b, amount: -5 }).success).toBe(false);
+  });
+
+  it('deletes a transfer', () => {
+    const { api, a, b } = withTwoAccounts();
+    const created = post(api, 'addTransfer', {
+      fromAccountId: a, toAccountId: b, amount: 1, date: '2026-08-01'
+    });
+
+    expect(post(api, 'deleteTransfer', { id: created.data.id })).toEqual({ success: true });
+    expect(get(api, 'list').data.transfers).toEqual([]);
+  });
+
+  it('reports not found for a transfer that does not exist', () => {
+    const { api } = withTwoAccounts();
+    expect(post(api, 'deleteTransfer', { id: 'nope' }).success).toBe(false);
+  });
+
+  it('blocks deleting an account a transfer still references', () => {
+    const { api, a, b } = withTwoAccounts();
+    post(api, 'addTransfer', { fromAccountId: a, toAccountId: b, amount: 1, date: '2026-08-01' });
+
+    const refused = post(api, 'deleteAccount', { id: a });
+    expect(refused.success).toBe(false);
+    expect(refused.data.uses).toBe(1);
+  });
+});
+
 describe('import (backup restore)', () => {
   const rows = [
     { id: 'keep-1', type: 'expense', amount: 50000, category: 'Food', date: '2026-08-01', note: '', createdAt: 'ts1' },

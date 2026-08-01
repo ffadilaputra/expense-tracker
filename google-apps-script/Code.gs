@@ -210,6 +210,37 @@ function countAccountUses(id) {
   return uses;
 }
 
+function addTransfer(data) {
+  var from = String(data.fromAccountId || '');
+  var to = String(data.toAccountId || '');
+  if (from === '' || to === '') return { success: false, error: 'Both accounts are required' };
+  // A transfer to itself nets to zero on both ends - it would record activity
+  // that changes nothing, so it is refused rather than stored.
+  if (from === to) return { success: false, error: 'Cannot transfer to the same account' };
+  if (normAmount(data.amount) <= 0) return { success: false, error: 'Amount must be greater than zero' };
+
+  var sheet = getSheetFor(TRANSFERS_SHEET, TRANSFER_HEADERS);
+  var row = [
+    Utilities.getUuid(),
+    from,
+    to,
+    normAmount(data.amount),
+    normDate(data.date || new Date()),
+    data.note || '',
+    new Date().toISOString()
+  ];
+  sheet.appendRow(row);
+  return { success: true, data: transferRowToObject(row) };
+}
+
+function deleteTransfer(id) {
+  var sheet = getSheetFor(TRANSFERS_SHEET, TRANSFER_HEADERS);
+  var rowIndex = findRowIndexById(sheet, id);
+  if (rowIndex === -1) return { success: false, error: 'Transfer not found' };
+  sheet.deleteRow(rowIndex);
+  return { success: true };
+}
+
 function deleteAccount(id) {
   var sheet = getSheetFor(ACCOUNTS_SHEET, ACCOUNT_HEADERS);
   var rowIndex = findRowIndexById(sheet, id);
@@ -383,6 +414,8 @@ function doPost(e) {
     if (action === 'addAccount') return jsonResponse(addAccount(data));
     if (action === 'updateAccount') return jsonResponse(updateAccount(data));
     if (action === 'deleteAccount') return jsonResponse(deleteAccount(data.id));
+    if (action === 'addTransfer') return jsonResponse(addTransfer(data));
+    if (action === 'deleteTransfer') return jsonResponse(deleteTransfer(data.id));
     return jsonResponse({ success: false, error: 'Unknown POST action: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: 'Script error: ' + (err && err.message ? err.message : err) });

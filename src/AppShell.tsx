@@ -25,10 +25,11 @@ import {
   type CategoryChip
 } from './utils/categoryFilter';
 import type { TranslationKey } from './i18n/translations';
-import type { Account, Transaction, TransactionFormData } from './types';
+import type { Account, Transaction, TransactionFormData, Transfer } from './types';
 
 const TransactionForm = lazy(() => import('./components/TransactionForm'));
 const AccountForm = lazy(() => import('./components/AccountForm'));
+const TransferForm = lazy(() => import('./components/TransferForm'));
 
 interface AppShellProps {
   onChangeSheet: () => void;
@@ -62,6 +63,8 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     addAccount,
     updateAccount,
     deleteAccount,
+    addTransfer,
+    deleteTransfer,
     retryFailedChanges,
     discardFailedChanges,
     syncNow,
@@ -75,6 +78,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const [backupOpen, setBackupOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('transactions');
   const [accountEditor, setAccountEditor] = useState<AccountEditor>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
   const today = todayISO();
   const [period, setPeriodState] = useState<Period>(() => currentMonth(today));
   const [category, setCategory] = useState<CategoryChip | null>(null);
@@ -194,6 +198,27 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     [accountEditor, addAccount, updateAccount]
   );
 
+  const handleTransferSubmit = useCallback(
+    async (form: Parameters<typeof addTransfer>[0]) => {
+      setSubmitting(true);
+      try {
+        await addTransfer(form);
+        setTransferOpen(false);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [addTransfer]
+  );
+
+  const handleTransferDelete = useCallback(
+    async (transfer: Transfer) => {
+      if (!confirm(t('transferDeleteConfirm'))) return;
+      await deleteTransfer(transfer.id);
+    },
+    [deleteTransfer, t]
+  );
+
   const handleAccountDelete = useCallback(async () => {
     if (!accountEditor || accountEditor === 'new') return;
     if (!confirm(t('accountDeleteConfirm'))) return;
@@ -273,6 +298,8 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
             transfers={transfers}
             onAdd={() => setAccountEditor('new')}
             onEdit={(account) => setAccountEditor(account)}
+            onTransfer={() => setTransferOpen(true)}
+            onDeleteTransfer={handleTransferDelete}
           />
         ) : (
           <>
@@ -332,6 +359,23 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
                 {t('closeBtn')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {transferOpen && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label={t('transferTitle')}>
+          <div className="modal__backdrop" onClick={() => !submitting && setTransferOpen(false)} />
+          <div className="modal__panel">
+            <h2 className="modal__title">{t('transferTitle')}</h2>
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <TransferForm
+                accounts={accounts}
+                onSubmit={handleTransferSubmit}
+                submitting={submitting}
+                onCancel={() => setTransferOpen(false)}
+              />
+            </Suspense>
           </div>
         </div>
       )}

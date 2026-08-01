@@ -94,6 +94,19 @@ export async function deleteAccount(id: string): Promise<void> {
   await postAction<null>('deleteAccount', { id });
 }
 
+export type TransferFormData = Pick<
+  Transfer,
+  'fromAccountId' | 'toAccountId' | 'amount' | 'date' | 'note'
+>;
+
+export async function addTransfer(form: TransferFormData): Promise<Transfer> {
+  return normalizeTransfer(await postAction<Transfer>('addTransfer', form));
+}
+
+export async function deleteTransfer(id: string): Promise<void> {
+  await postAction<null>('deleteTransfer', { id });
+}
+
 export interface ImportCounts {
   added: number;
   skipped: number;
@@ -125,7 +138,9 @@ async function postAction<T>(
     | 'import'
     | 'addAccount'
     | 'updateAccount'
-    | 'deleteAccount',
+    | 'deleteAccount'
+    | 'addTransfer'
+    | 'deleteTransfer',
   data: unknown
 ): Promise<T> {
   const apiUrl = requireApiUrl();
