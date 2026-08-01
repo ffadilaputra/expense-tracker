@@ -72,6 +72,36 @@ export const en = {
   deleteBtn: 'Delete',
   addFabLabel: 'Add transaction',
 
+  // Navigation
+  navLabel: 'Sections',
+  navTransactions: 'Transactions',
+  navAccounts: 'Accounts',
+
+  // Accounts
+  accountsEmpty: 'No accounts yet. Tap + to add one.',
+  accountAddLabel: 'Add account',
+  accountAddTitle: 'Add account',
+  accountEditTitle: 'Edit account',
+  accountFieldName: 'Name',
+  accountNamePlaceholder: 'e.g. BCA, Cash, GoPay',
+  accountFieldOwner: 'Owner (optional)',
+  accountOwnerPlaceholder: 'e.g. Budi',
+  accountFieldIcon: 'Icon (optional)',
+  accountIconPlaceholder: 'e.g. 🏦',
+  accountNoOwner: 'No owner',
+  accountUnassigned: 'Unassigned',
+  accountTotal: 'Total',
+  accountNone: 'No account',
+  fieldAccount: 'Account',
+  accountDeleteConfirm: 'Delete this account?',
+  accountNoOpeningBalance:
+    'Balances count only what you have recorded here — they do not include money an account already held.',
+
+  // Failed changes
+  failedCount: '{count} change(s) the sheet refused',
+  failedRetry: 'Try again',
+  failedDiscard: 'Discard',
+
   // Backup & restore
   menuLabel: 'More',
   backupMenuItem: 'Backup & restore',
@@ -202,6 +232,33 @@ export const id: Record<TranslationKey, string> = {
   cancelBtn: 'Batal',
   deleteBtn: 'Hapus',
   addFabLabel: 'Tambah transaksi',
+
+  navLabel: 'Bagian',
+  navTransactions: 'Transaksi',
+  navAccounts: 'Akun',
+
+  accountsEmpty: 'Belum ada akun. Ketuk + untuk menambahkan.',
+  accountAddLabel: 'Tambah akun',
+  accountAddTitle: 'Tambah akun',
+  accountEditTitle: 'Ubah akun',
+  accountFieldName: 'Nama',
+  accountNamePlaceholder: 'mis. BCA, Tunai, GoPay',
+  accountFieldOwner: 'Pemilik (opsional)',
+  accountOwnerPlaceholder: 'mis. Budi',
+  accountFieldIcon: 'Ikon (opsional)',
+  accountIconPlaceholder: 'mis. 🏦',
+  accountNoOwner: 'Tanpa pemilik',
+  accountUnassigned: 'Tanpa akun',
+  accountTotal: 'Total',
+  accountNone: 'Tanpa akun',
+  fieldAccount: 'Akun',
+  accountDeleteConfirm: 'Hapus akun ini?',
+  accountNoOpeningBalance:
+    'Saldo hanya menghitung yang kamu catat di sini — belum termasuk uang yang sudah ada sebelumnya.',
+
+  failedCount: '{count} perubahan ditolak oleh sheet',
+  failedRetry: 'Coba lagi',
+  failedDiscard: 'Buang',
 
   menuLabel: 'Lainnya',
   backupMenuItem: 'Cadangkan & pulihkan',

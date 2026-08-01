@@ -47,8 +47,16 @@ Your Google Sheet must have a tab named **Transactions** with the following colu
 | `date`    | Date in `YYYY-MM-DD` format      |
 | `note`    | Text (optional)                  |
 | `createdAt`| ISO timestamp (auto-generated)  |
+| `accountId`| Id from the Accounts tab (optional; blank = unassigned) |
 
-The Apps Script handles all of this automatically—just create the sheet and deploy the code.
+Two more tabs are created automatically the first time you need them:
+
+**Accounts** — `id`, `name`, `ownerName`, `icon`, `createdAt`
+**Transfers** — `id`, `fromAccountId`, `toAccountId`, `amount`, `date`, `note`, `createdAt`
+
+The Apps Script handles all of this automatically—just create the sheet and deploy the code. It also
+adds any column a newer version needs, so upgrading is a matter of pasting in the new `Code.gs` and
+redeploying; your existing rows are left alone.
 
 ## Security (Optional)
 

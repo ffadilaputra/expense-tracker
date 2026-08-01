@@ -2,7 +2,7 @@ import { memo, useState, type FormEvent } from 'react';
 import { useI18n } from '../i18n/context';
 import { categoriesFor } from '../config/categories';
 import { parseAmount, formatIDR } from '../utils/money';
-import type { TransactionFormData, TransactionType } from '../types';
+import type { Account, TransactionFormData, TransactionType } from '../types';
 
 interface TransactionFormProps {
   onSubmit: (form: TransactionFormData) => Promise<void> | void;
@@ -11,6 +11,8 @@ interface TransactionFormProps {
   initialValue?: TransactionFormData;
   onCancel: () => void;
   onDelete?: () => void;
+  /** Selectable accounts. Choosing one is optional. */
+  accounts: Account[];
 }
 
 function todayISO(): string {
@@ -22,10 +24,18 @@ const EMPTY: TransactionFormData = {
   amount: 0,
   category: '',
   date: todayISO(),
-  note: ''
+  note: '',
+  accountId: ''
 };
 
-function TransactionForm({ onSubmit, submitting, initialValue, onCancel, onDelete }: TransactionFormProps) {
+function TransactionForm({
+  onSubmit,
+  submitting,
+  initialValue,
+  onCancel,
+  onDelete,
+  accounts
+}: TransactionFormProps) {
   const { t } = useI18n();
   const isEditing = initialValue !== undefined;
   const seed = initialValue ?? EMPTY;
@@ -37,6 +47,7 @@ function TransactionForm({ onSubmit, submitting, initialValue, onCancel, onDelet
   const [category, setCategory] = useState(seed.category);
   const [date, setDate] = useState(seed.date);
   const [note, setNote] = useState(seed.note ?? '');
+  const [accountId, setAccountId] = useState(seed.accountId ?? '');
 
   function handleAmountChange(raw: string) {
     const parsed = parseAmount(raw);
@@ -47,7 +58,7 @@ function TransactionForm({ onSubmit, submitting, initialValue, onCancel, onDelet
     event.preventDefault();
     const amount = parseAmount(amountText);
     if (amount <= 0) return;
-    await onSubmit({ type, amount, category: category.trim(), date, note: note.trim() });
+    await onSubmit({ type, amount, category: category.trim(), date, note: note.trim(), accountId });
   }
 
   const listId = `categories-${type}`;
@@ -101,6 +112,18 @@ function TransactionForm({ onSubmit, submitting, initialValue, onCancel, onDelet
             <option key={c} value={c} />
           ))}
         </datalist>
+      </label>
+
+      <label>
+        {t('fieldAccount')}
+        <select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+          <option value="">{t('accountNone')}</option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.icon ? `${a.icon} ${a.name}` : a.name}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label>

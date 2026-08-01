@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ApiRejectionError, deleteTransaction, fetchTransactions } from './sheetApi';
+import { ApiRejectionError, deleteTransaction, fetchAll } from './sheetApi';
 
 const API_URL = 'https://script.google.com/macros/d/abc/exec';
 
@@ -46,17 +46,23 @@ describe('deleteTransaction', () => {
   });
 });
 
-describe('fetchTransactions', () => {
+describe('fetchAll', () => {
   it('normalizes rows coming back from the sheet', async () => {
     mockFetch(async () => ({
       json: async () => ({
         success: true,
-        data: [{ id: 1, type: 'nonsense', amount: '2500', category: 7, date: '2026-08-01T00:00:00', note: null }]
+        data: {
+          transactions: [
+            { id: 1, type: 'nonsense', amount: '2500', category: 7, date: '2026-08-01T00:00:00', note: null }
+          ],
+          accounts: [{ id: 'a1', name: 'BCA', ownerName: 'Budi' }],
+          transfers: []
+        }
       })
     }));
 
-    const [txn] = await fetchTransactions();
-    expect(txn).toMatchObject({
+    const snapshot = await fetchAll();
+    expect(snapshot.transactions[0]).toMatchObject({
       id: '1',
       type: 'expense',
       amount: 2500,
@@ -64,5 +70,28 @@ describe('fetchTransactions', () => {
       date: '2026-08-01',
       note: ''
     });
+    expect(snapshot.accounts[0]).toMatchObject({ id: 'a1', name: 'BCA', ownerName: 'Budi' });
+  });
+
+  it('accepts the bare array an un-redeployed script still returns', async () => {
+    // Old deployment: degrade to transactions-only rather than failing outright.
+    mockFetch(async () => ({
+      json: async () => ({
+        success: true,
+        data: [{ id: 'x', type: 'expense', amount: 100, category: 'Food', date: '2026-08-01' }]
+      })
+    }));
+
+    const snapshot = await fetchAll();
+    expect(snapshot.transactions).toHaveLength(1);
+    expect(snapshot.accounts).toEqual([]);
+    expect(snapshot.transfers).toEqual([]);
+  });
+
+  it('tolerates a response with no accounts key', async () => {
+    mockFetch(async () => ({ json: async () => ({ success: true, data: { transactions: [] } }) }));
+
+    const snapshot = await fetchAll();
+    expect(snapshot).toEqual({ transactions: [], accounts: [], transfers: [] });
   });
 });

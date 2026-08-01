@@ -5,10 +5,12 @@ import type { Transaction } from '../types';
 
 interface TransactionCardProps {
   transaction: Transaction;
+  /** Resolved account label, or '' when unassigned. */
+  accountLabel?: string;
   onEdit: (t: Transaction) => void;
 }
 
-function TransactionCard({ transaction, onEdit }: TransactionCardProps) {
+function TransactionCard({ transaction, accountLabel, onEdit }: TransactionCardProps) {
   const { t } = useI18n();
   const { type, amount, category, note, _pending } = transaction;
   const sign = type === 'income' ? '+' : '−';
@@ -16,7 +18,10 @@ function TransactionCard({ transaction, onEdit }: TransactionCardProps) {
   return (
     <button type="button" className="txn-card" onClick={() => onEdit(transaction)}>
       <span className="txn-card__main">
-        <span className="txn-card__category">{category || '—'}</span>
+        <span className="txn-card__category">
+          {category || '—'}
+          {accountLabel ? <span className="txn-card__account">{accountLabel}</span> : null}
+        </span>
         {note ? <span className="txn-card__note">{note}</span> : null}
         {_pending ? <span className="txn-card__pending">{t('pendingTag')}</span> : null}
       </span>

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import useTransactionStore from './hooks/useTransactionStore';
+import useFinanceStore from './hooks/useFinanceStore';
 import usePullToRefresh from './hooks/usePullToRefresh';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import SyncStatus from './components/SyncStatus';
@@ -11,6 +11,8 @@ import SpendingHeatmap from './components/SpendingHeatmap';
 import CategoryFilter from './components/CategoryFilter';
 import TransactionList from './components/TransactionList';
 import BackupPanel from './components/BackupPanel';
+import BottomNav, { type Tab } from './components/BottomNav';
+import AccountsScreen from './components/AccountsScreen';
 import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
 import { computeBalance, computeTotals } from './utils/summary';
@@ -23,9 +25,10 @@ import {
   type CategoryChip
 } from './utils/categoryFilter';
 import type { TranslationKey } from './i18n/translations';
-import type { Transaction, TransactionFormData } from './types';
+import type { Account, Transaction, TransactionFormData } from './types';
 
 const TransactionForm = lazy(() => import('./components/TransactionForm'));
+const AccountForm = lazy(() => import('./components/AccountForm'));
 
 interface AppShellProps {
   onChangeSheet: () => void;
@@ -38,27 +41,40 @@ function todayISO(): string {
 /** null = list view; 'new' = adding; a Transaction = editing that row. */
 type Editor = null | 'new' | Transaction;
 
+/** Same convention for the account modal. */
+type AccountEditor = null | 'new' | Account;
+
 export default function AppShell({ onChangeSheet }: AppShellProps) {
   const { t } = useI18n();
   const toast = useToast();
   const {
     transactions,
+    accounts,
+    transfers,
     error,
     isOnline,
     syncing,
     pendingCount,
+    failedCount,
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    addAccount,
+    updateAccount,
+    deleteAccount,
+    retryFailedChanges,
+    discardFailedChanges,
     syncNow,
     refresh,
     clearError
-  } = useTransactionStore();
+  } = useFinanceStore();
 
   const [editor, setEditor] = useState<Editor>(null);
   const [submitting, setSubmitting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [tab, setTab] = useState<Tab>('transactions');
+  const [accountEditor, setAccountEditor] = useState<AccountEditor>(null);
   const today = todayISO();
   const [period, setPeriodState] = useState<Period>(() => currentMonth(today));
   const [category, setCategory] = useState<CategoryChip | null>(null);
@@ -74,6 +90,12 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   // Deliberately not period-scoped: this always compares this calendar month
   // with last, so it means the same thing wherever the user has navigated.
   const trend = useMemo(() => computeSpendingTrend(transactions, today), [transactions, today]);
+
+  // Resolved once here so the list does not search the accounts array per row.
+  const accountLabels = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a.icon ? `${a.icon} ${a.name}` : a.name])),
+    [accounts]
+  );
 
   /**
    * Every period change goes through here: the new scope may no longer contain
@@ -148,8 +170,41 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
 
   const initialValue: TransactionFormData | undefined =
     editor && editor !== 'new'
-      ? { type: editor.type, amount: editor.amount, category: editor.category, date: editor.date, note: editor.note ?? '' }
+      ? {
+          type: editor.type,
+          amount: editor.amount,
+          category: editor.category,
+          date: editor.date,
+          note: editor.note ?? '',
+          accountId: editor.accountId ?? ''
+        }
       : undefined;
+
+  const handleAccountSubmit = useCallback(
+    async (form: { name: string; ownerName?: string; icon?: string }) => {
+      setSubmitting(true);
+      try {
+        if (accountEditor && accountEditor !== 'new') await updateAccount(accountEditor.id, form);
+        else await addAccount(form);
+        setAccountEditor(null);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [accountEditor, addAccount, updateAccount]
+  );
+
+  const handleAccountDelete = useCallback(async () => {
+    if (!accountEditor || accountEditor === 'new') return;
+    if (!confirm(t('accountDeleteConfirm'))) return;
+    setSubmitting(true);
+    try {
+      await deleteAccount(accountEditor.id);
+      setAccountEditor(null);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [accountEditor, deleteAccount, t]);
 
   return (
     <div className="app">
@@ -198,11 +253,29 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
             </div>
           </div>
         </div>
-        <SyncStatus isOnline={isOnline} syncing={syncing} pendingCount={pendingCount} onSyncNow={syncNow} />
+        <SyncStatus
+          isOnline={isOnline}
+          syncing={syncing}
+          pendingCount={pendingCount}
+          failedCount={failedCount}
+          onSyncNow={syncNow}
+          onRetryFailed={retryFailedChanges}
+          onDiscardFailed={discardFailedChanges}
+        />
       </header>
 
       <main className="app__main">
         <PullToRefreshIndicator {...pull} />
+        {tab === 'accounts' ? (
+          <AccountsScreen
+            accounts={accounts}
+            transactions={transactions}
+            transfers={transfers}
+            onAdd={() => setAccountEditor('new')}
+            onEdit={(account) => setAccountEditor(account)}
+          />
+        ) : (
+          <>
         <PeriodBar period={period} todayISO={today} onChange={setPeriod} />
         <Summary
           balance={balance}
@@ -226,25 +299,30 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           transactions={visible}
           todayISO={today}
           emptyKey={emptyKey}
+          accountLabels={accountLabels}
           onEdit={(txn) => setEditor(txn)}
         />
+          </>
+        )}
       </main>
 
-      <button type="button" className="fab" aria-label={t('addFabLabel')} onClick={() => setEditor('new')}>
-        +
-      </button>
+      <BottomNav tab={tab} onChange={setTab} />
+
+      {tab === 'transactions' && (
+        <button type="button" className="fab" aria-label={t('addFabLabel')} onClick={() => setEditor('new')}>
+          +
+        </button>
+      )}
 
       {backupOpen && (
         <div className="modal" role="dialog" aria-modal="true" aria-label={t('backupTitle')}>
           <div className="modal__backdrop" onClick={() => setBackupOpen(false)} />
           <div className="modal__panel">
             <h2 className="modal__title">{t('backupTitle')}</h2>
-            {/* Accounts and transfers are not built yet, so the file carries
-                empty arrays for them; the format already reserves the keys. */}
             <BackupPanel
               transactions={transactions}
-              accounts={[]}
-              transfers={[]}
+              accounts={accounts}
+              transfers={transfers}
               isOnline={isOnline}
               onClose={() => setBackupOpen(false)}
               onRestored={refresh}
@@ -258,6 +336,33 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
         </div>
       )}
 
+      {accountEditor !== null && (
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={accountEditor === 'new' ? t('accountAddTitle') : t('accountEditTitle')}
+        >
+          <div className="modal__backdrop" onClick={() => !submitting && setAccountEditor(null)} />
+          <div className="modal__panel">
+            <h2 className="modal__title">
+              {accountEditor === 'new' ? t('accountAddTitle') : t('accountEditTitle')}
+            </h2>
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <AccountForm
+                key={accountEditor === 'new' ? 'new' : accountEditor.id}
+                accounts={accounts}
+                onSubmit={handleAccountSubmit}
+                submitting={submitting}
+                initialValue={accountEditor === 'new' ? undefined : accountEditor}
+                onCancel={() => setAccountEditor(null)}
+                onDelete={accountEditor !== 'new' ? handleAccountDelete : undefined}
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
       {editor !== null && (
         <div className="modal" role="dialog" aria-modal="true" aria-label={editor === 'new' ? t('addTitle') : t('editTitle')}>
           <div className="modal__backdrop" onClick={() => !submitting && setEditor(null)} />
@@ -266,6 +371,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
             <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
               <TransactionForm
                 key={editor === 'new' ? 'new' : editor.id}
+                accounts={accounts}
                 onSubmit={handleSubmit}
                 submitting={submitting}
                 initialValue={initialValue}

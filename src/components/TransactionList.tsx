@@ -11,10 +11,18 @@ interface TransactionListProps {
   todayISO: string;
   /** Which "nothing here" message fits the active filters. */
   emptyKey: TranslationKey;
+  /** Account id to display label, so the list does not have to search. */
+  accountLabels: Map<string, string>;
   onEdit: (t: Transaction) => void;
 }
 
-function TransactionList({ transactions, todayISO, emptyKey, onEdit }: TransactionListProps) {
+function TransactionList({
+  transactions,
+  todayISO,
+  emptyKey,
+  accountLabels,
+  onEdit
+}: TransactionListProps) {
   const { t } = useI18n();
   const groups = useMemo(() => groupByDate(transactions), [transactions]);
 
@@ -35,7 +43,12 @@ function TransactionList({ transactions, todayISO, emptyKey, onEdit }: Transacti
         <section className="txn-group" key={group.date}>
           <h2 className="txn-group__heading">{labelFor(group.date)}</h2>
           {group.items.map((txn) => (
-            <TransactionCard key={txn.id} transaction={txn} onEdit={onEdit} />
+            <TransactionCard
+              key={txn.id}
+              transaction={txn}
+              accountLabel={txn.accountId ? accountLabels.get(txn.accountId) : undefined}
+              onEdit={onEdit}
+            />
           ))}
         </section>
       ))}

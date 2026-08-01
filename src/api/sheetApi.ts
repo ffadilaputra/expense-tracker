@@ -8,8 +8,8 @@
 import { getStoredApiUrl } from '../config/apiUrl';
 import { getStoredLocale } from '../i18n/locale';
 import { translate } from '../i18n/translate';
-import { normalizeTransaction } from '../utils/normalize';
-import type { ApiEnvelope, Transaction, TransactionFormData } from '../types';
+import { normalizeAccount, normalizeTransaction, normalizeTransfer } from '../utils/normalize';
+import type { Account, ApiEnvelope, Transaction, TransactionFormData, Transfer } from '../types';
 
 function requireApiUrl(): string {
   const url = getStoredApiUrl();
@@ -30,14 +30,38 @@ export class ApiRejectionError extends Error {
   }
 }
 
-export async function fetchTransactions(): Promise<Transaction[]> {
+export interface SheetSnapshot {
+  transactions: Transaction[];
+  accounts: Account[];
+  transfers: Transfer[];
+}
+
+interface RawSnapshot {
+  transactions?: unknown[];
+  accounts?: unknown[];
+  transfers?: unknown[];
+}
+
+/**
+ * One round trip for all three collections. A deployment that predates
+ * accounts answers with a bare transaction array; that shape is accepted and
+ * degrades to transactions-only rather than failing outright, so the app keeps
+ * working until the user redeploys the script.
+ */
+export async function fetchAll(): Promise<SheetSnapshot> {
   const apiUrl = requireApiUrl();
   const res = await fetch(`${apiUrl}?action=list`);
-  const json = (await res.json()) as ApiEnvelope<Transaction[]>;
+  const json = (await res.json()) as ApiEnvelope<unknown[] | RawSnapshot>;
   if (!json.success || !json.data) {
     throw new Error(json.error ?? translate(getStoredLocale(), 'errFetchFailed'));
   }
-  return json.data.map(normalizeTransaction);
+
+  const raw: RawSnapshot = Array.isArray(json.data) ? { transactions: json.data } : json.data;
+  return {
+    transactions: (raw.transactions ?? []).map((r) => normalizeTransaction(r as Partial<Transaction>)),
+    accounts: (raw.accounts ?? []).map((r) => normalizeAccount(r as Partial<Account>)),
+    transfers: (raw.transfers ?? []).map((r) => normalizeTransfer(r as Partial<Transfer>))
+  };
 }
 
 export async function addTransaction(form: TransactionFormData): Promise<Transaction> {
@@ -52,6 +76,22 @@ export async function updateTransaction(
 
 export async function deleteTransaction(id: string): Promise<void> {
   await postAction<null>('delete', { id });
+}
+
+export type AccountFormData = Pick<Account, 'name' | 'ownerName' | 'icon'>;
+
+export async function addAccount(form: AccountFormData): Promise<Account> {
+  return normalizeAccount(await postAction<Account>('addAccount', form));
+}
+
+export async function updateAccount(
+  data: Partial<AccountFormData> & { id: string }
+): Promise<Account> {
+  return normalizeAccount(await postAction<Account>('updateAccount', data));
+}
+
+export async function deleteAccount(id: string): Promise<void> {
+  await postAction<null>('deleteAccount', { id });
 }
 
 export interface ImportCounts {
@@ -78,7 +118,14 @@ export async function importBackup(data: {
 }
 
 async function postAction<T>(
-  action: 'add' | 'update' | 'delete' | 'import',
+  action:
+    | 'add'
+    | 'update'
+    | 'delete'
+    | 'import'
+    | 'addAccount'
+    | 'updateAccount'
+    | 'deleteAccount',
   data: unknown
 ): Promise<T> {
   const apiUrl = requireApiUrl();

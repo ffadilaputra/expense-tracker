@@ -14,7 +14,7 @@
  */
 
 var SHEET_NAME = 'Transactions';
-var HEADERS = ['id', 'type', 'amount', 'category', 'date', 'note', 'createdAt'];
+var HEADERS = ['id', 'type', 'amount', 'category', 'date', 'note', 'createdAt', 'accountId'];
 
 // Written to only by the backup import for now; the accounts feature will use
 // these same tabs. Neither is created unless there are rows to put in it, so a
@@ -57,10 +57,29 @@ function ensureHeaders(sheet, headers) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     return;
   }
+
   var first = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
-  if (String(first[0]).trim().toLowerCase() === 'id') return;
-  sheet.insertRowBefore(1);
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+  // No header at all: the first transaction was written into row 1, where
+  // getAll sliced it away and findRowIndexById never scanned it. Insert the
+  // header above so that row moves to 2 and comes back into reach.
+  if (String(first[0]).trim().toLowerCase() !== 'id') {
+    sheet.insertRowBefore(1);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    return;
+  }
+
+  // Header present but short - a sheet written by an older version of this
+  // script, before a column was added. Fill in only the cells that differ, so
+  // a live sheet gains the new column without any data row being touched.
+  var missing = false;
+  for (var i = 0; i < headers.length; i++) {
+    if (String(first[i]).trim() !== headers[i]) {
+      missing = true;
+      break;
+    }
+  }
+  if (missing) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
 }
 
 function ownerToken() {
@@ -94,13 +113,117 @@ function rowToObject(row) {
     category: String(row[3]),
     date: normDate(row[4]),
     note: String(row[5]),
-    createdAt: String(row[6])
+    createdAt: String(row[6]),
+    // Appended after createdAt, so rows written before accounts existed are
+    // simply short here and read as unassigned.
+    accountId: String(row[7] == null ? '' : row[7])
+  };
+}
+
+function accountRowToObject(row) {
+  return {
+    id: String(row[0]),
+    name: String(row[1]),
+    ownerName: String(row[2] == null ? '' : row[2]),
+    icon: String(row[3] == null ? '' : row[3]),
+    createdAt: String(row[4] == null ? '' : row[4])
+  };
+}
+
+function transferRowToObject(row) {
+  return {
+    id: String(row[0]),
+    fromAccountId: String(row[1]),
+    toAccountId: String(row[2]),
+    amount: normAmount(row[3]),
+    date: normDate(row[4]),
+    note: String(row[5] == null ? '' : row[5]),
+    createdAt: String(row[6] == null ? '' : row[6])
   };
 }
 
 function getAll(sheet) {
   var values = sheet.getDataRange().getValues();
   return values.slice(1).filter(function (r) { return r[0] !== ''; }).map(rowToObject);
+}
+
+/**
+ * Reads a tab without creating it. A user who never opens the accounts screen
+ * should not grow empty Accounts and Transfers tabs just by loading the app.
+ */
+function readTab(name, headers, mapper) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
+  if (!sheet) return [];
+  ensureHeaders(sheet, headers);
+  var values = sheet.getDataRange().getValues();
+  return values.slice(1).filter(function (r) { return r[0] !== ''; }).map(mapper);
+}
+
+function listAll() {
+  return {
+    transactions: getAll(getSheet()),
+    accounts: readTab(ACCOUNTS_SHEET, ACCOUNT_HEADERS, accountRowToObject),
+    transfers: readTab(TRANSFERS_SHEET, TRANSFER_HEADERS, transferRowToObject)
+  };
+}
+
+function addAccount(data) {
+  var sheet = getSheetFor(ACCOUNTS_SHEET, ACCOUNT_HEADERS);
+  var row = [
+    Utilities.getUuid(),
+    data.name || '',
+    data.ownerName || '',
+    data.icon || '',
+    new Date().toISOString()
+  ];
+  sheet.appendRow(row);
+  return { success: true, data: accountRowToObject(row) };
+}
+
+function updateAccount(data) {
+  var sheet = getSheetFor(ACCOUNTS_SHEET, ACCOUNT_HEADERS);
+  var rowIndex = findRowIndexById(sheet, data.id);
+  if (rowIndex === -1) return { success: false, error: 'Account not found' };
+  var existing = sheet.getRange(rowIndex, 1, 1, ACCOUNT_HEADERS.length).getValues()[0];
+  var updated = [
+    existing[0],
+    data.name != null ? data.name : existing[1],
+    data.ownerName != null ? data.ownerName : existing[2],
+    data.icon != null ? data.icon : existing[3],
+    existing[4]
+  ];
+  sheet.getRange(rowIndex, 1, 1, ACCOUNT_HEADERS.length).setValues([updated]);
+  return { success: true, data: accountRowToObject(updated) };
+}
+
+/** How many rows still point at this account, across both referencing tabs. */
+function countAccountUses(id) {
+  var uses = 0;
+  var txns = getAll(getSheet());
+  for (var i = 0; i < txns.length; i++) {
+    if (txns[i].accountId === String(id)) uses++;
+  }
+  var transfers = readTab(TRANSFERS_SHEET, TRANSFER_HEADERS, transferRowToObject);
+  for (var j = 0; j < transfers.length; j++) {
+    if (transfers[j].fromAccountId === String(id) || transfers[j].toAccountId === String(id)) uses++;
+  }
+  return uses;
+}
+
+function deleteAccount(id) {
+  var sheet = getSheetFor(ACCOUNTS_SHEET, ACCOUNT_HEADERS);
+  var rowIndex = findRowIndexById(sheet, id);
+  if (rowIndex === -1) return { success: false, error: 'Account not found' };
+
+  // Refuse rather than silently unassigning: quietly rewriting financial
+  // records is worse than making the user reassign them first.
+  var uses = countAccountUses(id);
+  if (uses > 0) {
+    return { success: false, error: 'Account still used by ' + uses + ' row(s)', data: { uses: uses } };
+  }
+
+  sheet.deleteRow(rowIndex);
+  return { success: true };
 }
 
 function findRowIndexById(sheet, id) {
@@ -120,7 +243,8 @@ function addTransaction(sheet, data) {
     data.category || '',
     normDate(data.date || new Date()),
     data.note || '',
-    new Date().toISOString()
+    new Date().toISOString(),
+    data.accountId || ''
   ];
   sheet.appendRow(row);
   return { success: true, data: rowToObject(row) };
@@ -137,7 +261,8 @@ function updateTransaction(sheet, data) {
     data.category != null ? data.category : existing[3],
     data.date != null ? normDate(data.date) : existing[4],
     data.note != null ? data.note : existing[5],
-    existing[6]
+    existing[6],
+    data.accountId != null ? data.accountId : existing[7]
   ];
   sheet.getRange(rowIndex, 1, 1, HEADERS.length).setValues([updated]);
   return { success: true, data: rowToObject(updated) };
@@ -190,7 +315,8 @@ function transactionToRow(d, id) {
     d.category || '',
     normDate(d.date || new Date()),
     d.note || '',
-    d.createdAt || new Date().toISOString()
+    d.createdAt || new Date().toISOString(),
+    d.accountId || ''
   ];
 }
 
@@ -233,7 +359,7 @@ function doGet(e) {
     if (!isOwner(params.token)) return jsonResponse({ success: false, error: 'Unauthorized' });
     var sheet = getSheet();
     var action = params.action || 'list';
-    if (action === 'list') return jsonResponse({ success: true, data: getAll(sheet) });
+    if (action === 'list') return jsonResponse({ success: true, data: listAll() });
     return jsonResponse({ success: false, error: 'Unknown GET action: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: 'Script error: ' + (err && err.message ? err.message : err) });
@@ -254,6 +380,9 @@ function doPost(e) {
     if (action === 'update') return jsonResponse(updateTransaction(sheet, data));
     if (action === 'delete') return jsonResponse(deleteTransaction(sheet, data.id));
     if (action === 'import') return jsonResponse(importData(data));
+    if (action === 'addAccount') return jsonResponse(addAccount(data));
+    if (action === 'updateAccount') return jsonResponse(updateAccount(data));
+    if (action === 'deleteAccount') return jsonResponse(deleteAccount(data.id));
     return jsonResponse({ success: false, error: 'Unknown POST action: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: 'Script error: ' + (err && err.message ? err.message : err) });

@@ -15,6 +15,8 @@ export interface Transaction {
   note?: string;
   /** ISO timestamp set when the row was first created. */
   createdAt: string;
+  /** Which account the money moved through. '' or absent = Unassigned. */
+  accountId?: string;
   /** True while this row has offline changes not yet pushed to the sheet. */
   _pending?: boolean;
 }
@@ -53,11 +55,16 @@ export interface Transfer {
 
 export type SyncOperation = 'add' | 'update' | 'delete';
 
+/** Which collection a queued change belongs to. */
+export type SyncEntity = 'transaction' | 'account' | 'transfer';
+
 /** A queued change waiting to be pushed to Google Sheets once back online. */
 export interface QueueEntry {
+  /** Absent on entries written before accounts existed; read as 'transaction'. */
+  entity: SyncEntity;
   type: SyncOperation;
   id: string;
-  payload: Partial<TransactionFormData> | null;
+  payload: Record<string, unknown> | null;
 }
 
 /** Shape returned by every Apps Script endpoint. */

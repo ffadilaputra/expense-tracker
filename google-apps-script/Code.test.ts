@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { FakeSheet, loadCode, post, get } from './fakeSheets';
 
-const HEADERS = ['id', 'type', 'amount', 'category', 'date', 'note', 'createdAt'];
+const HEADERS = ['id', 'type', 'amount', 'category', 'date', 'note', 'createdAt', 'accountId'];
+const OLD_HEADERS = ['id', 'type', 'amount', 'category', 'date', 'note', 'createdAt'];
 
 describe('header row', () => {
   it('writes headers into a tab the user created by hand', () => {
@@ -30,7 +31,142 @@ describe('header row', () => {
     const { api } = loadCode({ sheet: new FakeSheet([stranded]) });
 
     const listed = get(api, 'list');
-    expect(listed.data.map((t: { id: string }) => t.id)).toEqual(['uuid-a']);
+    expect(listed.data.transactions.map((t: { id: string }) => t.id)).toEqual(['uuid-a']);
+  });
+});
+
+describe('migrating a live sheet to the accountId column', () => {
+  const oldRows = [
+    OLD_HEADERS,
+    ['t1', 'expense', 50000, 'Food', '2026-08-01', 'Lunch', 'ts1'],
+    ['t2', 'income', 900000, 'Salary', '2026-08-02', '', 'ts2']
+  ];
+
+  it('adds the new column to a header written by an older version', () => {
+    const { api } = loadCode({ sheet: new FakeSheet(oldRows) });
+    expect(api.getSheet().rows[0]).toEqual(HEADERS);
+  });
+
+  it('leaves existing data rows untouched', () => {
+    const { api } = loadCode({ sheet: new FakeSheet(oldRows) });
+    api.getSheet();
+    const sheet = api.getSheet();
+    expect(sheet.rows[1].slice(0, 7)).toEqual(oldRows[1]);
+    expect(sheet.rows[2].slice(0, 7)).toEqual(oldRows[2]);
+  });
+
+  it('reads pre-existing rows as unassigned rather than dropping them', () => {
+    const { api } = loadCode({ sheet: new FakeSheet(oldRows) });
+    const listed = get(api, 'list');
+    expect(listed.data.transactions).toHaveLength(2);
+    expect(listed.data.transactions[0].accountId).toBe('');
+  });
+
+  it('does not rewrite a header that is already current', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([HEADERS, oldRows[1].concat(['acc-1'])]) });
+    const sheet = api.getSheet();
+    expect(sheet.rows[0]).toEqual(HEADERS);
+    expect(sheet.rows[1][7]).toBe('acc-1');
+  });
+
+  it('round-trips accountId through add and update', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+
+    const added = post(api, 'add', {
+      type: 'expense', amount: 50000, category: 'Food', date: '2026-08-01', accountId: 'acc-1'
+    });
+    expect(added.data.accountId).toBe('acc-1');
+
+    const updated = post(api, 'update', { id: added.data.id, accountId: 'acc-2' });
+    expect(updated.data.accountId).toBe('acc-2');
+    expect(updated.data.amount).toBe(50000);
+  });
+
+  it('keeps accountId when an unrelated field is updated', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    const added = post(api, 'add', {
+      type: 'expense', amount: 1, category: 'Food', date: '2026-08-01', accountId: 'acc-1'
+    });
+
+    const updated = post(api, 'update', { id: added.data.id, amount: 999 });
+    expect(updated.data.accountId).toBe('acc-1');
+  });
+});
+
+describe('account CRUD', () => {
+  it('creates an account in the Accounts tab, not the Transactions tab', () => {
+    const { api, sheets } = loadCode({ sheet: new FakeSheet([]) });
+
+    const created = post(api, 'addAccount', { name: 'BCA', ownerName: 'Budi', icon: '🏦' });
+    expect(created.success).toBe(true);
+    expect(created.data).toMatchObject({ name: 'BCA', ownerName: 'Budi', icon: '🏦' });
+
+    expect(sheets.get('Accounts')!.rows[1][1]).toBe('BCA');
+    expect(api.getSheet().rows).toHaveLength(1); // header only
+  });
+
+  it('returns accounts from the combined list', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    post(api, 'addAccount', { name: 'Cash', ownerName: 'Budi' });
+
+    const listed = get(api, 'list');
+    expect(listed.data.accounts).toHaveLength(1);
+    expect(listed.data.accounts[0].name).toBe('Cash');
+  });
+
+  it('lists no accounts and creates no tab before any exist', () => {
+    const { api, sheets } = loadCode({ sheet: new FakeSheet([]) });
+
+    expect(get(api, 'list').data.accounts).toEqual([]);
+    expect(sheets.has('Accounts')).toBe(false);
+  });
+
+  it('updates a name without disturbing the owner', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    const created = post(api, 'addAccount', { name: 'BCA', ownerName: 'Budi' });
+
+    const updated = post(api, 'updateAccount', { id: created.data.id, name: 'BCA Digital' });
+    expect(updated.data).toMatchObject({ name: 'BCA Digital', ownerName: 'Budi' });
+  });
+
+  it('deletes an account nothing refers to', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    const created = post(api, 'addAccount', { name: 'Unused' });
+
+    expect(post(api, 'deleteAccount', { id: created.data.id })).toEqual({ success: true });
+    expect(get(api, 'list').data.accounts).toEqual([]);
+  });
+
+  it('refuses to delete an account a transaction still points at', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    const created = post(api, 'addAccount', { name: 'BCA' });
+    post(api, 'add', {
+      type: 'expense', amount: 1, category: 'Food', date: '2026-08-01', accountId: created.data.id
+    });
+
+    const refused = post(api, 'deleteAccount', { id: created.data.id });
+    expect(refused.success).toBe(false);
+    expect(refused.data.uses).toBe(1);
+    expect(get(api, 'list').data.accounts).toHaveLength(1);
+  });
+
+  it('allows the delete once the referring transaction is reassigned', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    const created = post(api, 'addAccount', { name: 'BCA' });
+    const txn = post(api, 'add', {
+      type: 'expense', amount: 1, category: 'Food', date: '2026-08-01', accountId: created.data.id
+    });
+
+    post(api, 'update', { id: txn.data.id, accountId: '' });
+    expect(post(api, 'deleteAccount', { id: created.data.id })).toEqual({ success: true });
+  });
+
+  it('reports not found for an account that does not exist', () => {
+    const { api } = loadCode({ sheet: new FakeSheet([]) });
+    post(api, 'addAccount', { name: 'BCA' });
+
+    expect(post(api, 'deleteAccount', { id: 'nope' }).success).toBe(false);
+    expect(post(api, 'updateAccount', { id: 'nope', name: 'x' }).success).toBe(false);
   });
 });
 
@@ -45,7 +181,7 @@ describe('import (backup restore)', () => {
 
     const result = post(api, 'import', { transactions: rows });
     expect(result.data.transactions).toEqual({ added: 2, skipped: 0 });
-    expect(get(api, 'list').data.map((t: { id: string }) => t.id)).toEqual(['keep-1', 'keep-2']);
+    expect(get(api, 'list').data.transactions.map((t: { id: string }) => t.id)).toEqual(['keep-1', 'keep-2']);
   });
 
   it('skips ids already present rather than duplicating them', () => {
@@ -54,7 +190,7 @@ describe('import (backup restore)', () => {
 
     const second = post(api, 'import', { transactions: rows });
     expect(second.data.transactions).toEqual({ added: 0, skipped: 2 });
-    expect(get(api, 'list').data).toHaveLength(2);
+    expect(get(api, 'list').data.transactions).toHaveLength(2);
   });
 
   it('merges a file that overlaps existing rows', () => {
@@ -65,7 +201,7 @@ describe('import (backup restore)', () => {
       transactions: [rows[1], { ...rows[0], id: 'new-3' }]
     });
     expect(merged.data.transactions).toEqual({ added: 1, skipped: 1 });
-    expect(get(api, 'list').data).toHaveLength(3);
+    expect(get(api, 'list').data.transactions).toHaveLength(3);
   });
 
   it('imports rows the app can then delete', () => {
@@ -74,7 +210,7 @@ describe('import (backup restore)', () => {
     post(api, 'import', { transactions: rows });
 
     expect(post(api, 'delete', { id: 'keep-1' })).toEqual({ success: true });
-    expect(get(api, 'list').data.map((t: { id: string }) => t.id)).toEqual(['keep-2']);
+    expect(get(api, 'list').data.transactions.map((t: { id: string }) => t.id)).toEqual(['keep-2']);
   });
 
   it('writes accounts and transfers into their own tabs', () => {
@@ -128,7 +264,7 @@ describe('delete against a hand-made tab', () => {
 
     const removed = post(api, 'delete', { id: added.data.id });
     expect(removed).toEqual({ success: true });
-    expect(get(api, 'list').data).toEqual([]);
+    expect(get(api, 'list').data.transactions).toEqual([]);
   });
 
   it('updates the very first transaction added', () => {
@@ -137,7 +273,7 @@ describe('delete against a hand-made tab', () => {
 
     const updated = post(api, 'update', { id: added.data.id, amount: 75000 });
     expect(updated.success).toBe(true);
-    expect(get(api, 'list').data[0].amount).toBe(75000);
+    expect(get(api, 'list').data.transactions[0].amount).toBe(75000);
   });
 
   it('still reports not found for an id that is genuinely absent', () => {
@@ -158,6 +294,6 @@ describe('delete against a hand-made tab', () => {
 
     post(api, 'delete', { id: b.data.id });
 
-    expect(get(api, 'list').data.map((t: { id: string }) => t.id)).toEqual([a.data.id, c.data.id]);
+    expect(get(api, 'list').data.transactions.map((t: { id: string }) => t.id)).toEqual([a.data.id, c.data.id]);
   });
 });
