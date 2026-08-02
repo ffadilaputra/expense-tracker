@@ -4,8 +4,8 @@
 // is a compile error.
 
 export const en = {
-  appTitle: 'Uang',
-  loginTagline: 'Track income and expenses in your own Google Sheet — still works offline.',
+  appTitle: 'Oeank',
+  loginTagline: 'karena rakyat desa gapake dollar',
   changeSheetLabel: 'Switch Google Sheet',
   changeSheetConfirm: 'Switch Google Sheet? The data cached on this device will be cleared.',
   dismissNotification: 'Dismiss notification',
@@ -203,7 +203,7 @@ export const en = {
   backupNothingToAdd: 'Everything in this file is already here.',
   backupDone: 'Restored {added} rows, skipped {skipped} already present.',
   backupErrNotJson: 'That file is not valid JSON.',
-  backupErrNotBackup: 'That file is not a Uang backup.',
+  backupErrNotBackup: 'That file is not an Oeank backup.',
   backupErrTooNew: 'That backup was made by a newer version of this app.',
   backupErrMalformed: 'That backup file is damaged and cannot be read.',
   backupErrFailed: 'The restore failed: {reason}',
@@ -216,7 +216,7 @@ export const en = {
   syncSyncing: 'Syncing...',
 
   // Install prompt
-  installPromptText: 'Add Uang to your home screen',
+  installPromptText: 'Add Oeank to your home screen',
   installBtn: 'Install',
   installDismiss: 'Not now',
   iosInstallText:
@@ -254,8 +254,8 @@ export const en = {
 export type TranslationKey = keyof typeof en;
 
 export const id: Record<TranslationKey, string> = {
-  appTitle: 'Uang',
-  loginTagline: 'Catat pemasukan dan pengeluaran di Google Sheet milikmu — tetap jalan offline.',
+  appTitle: 'Oeank',
+  loginTagline: 'karena rakyat desa gapake dollar',
   changeSheetLabel: 'Ganti Google Sheet',
   changeSheetConfirm: 'Ganti Google Sheet? Data yang tersimpan di perangkat ini akan dihapus.',
   dismissNotification: 'Tutup notifikasi',
@@ -438,7 +438,7 @@ export const id: Record<TranslationKey, string> = {
   backupNothingToAdd: 'Semua isi berkas ini sudah ada di sini.',
   backupDone: 'Memulihkan {added} baris, melewati {skipped} yang sudah ada.',
   backupErrNotJson: 'Berkas itu bukan JSON yang valid.',
-  backupErrNotBackup: 'Berkas itu bukan cadangan Uang.',
+  backupErrNotBackup: 'Berkas itu bukan cadangan Oeank.',
   backupErrTooNew: 'Cadangan itu dibuat oleh versi aplikasi yang lebih baru.',
   backupErrMalformed: 'Berkas cadangan itu rusak dan tidak dapat dibaca.',
   backupErrFailed: 'Pemulihan gagal: {reason}',
@@ -449,7 +449,7 @@ export const id: Record<TranslationKey, string> = {
   syncNowBtn: 'Sinkron sekarang',
   syncSyncing: 'Menyinkronkan...',
 
-  installPromptText: 'Tambahkan Uang ke layar utama',
+  installPromptText: 'Tambahkan Oeank ke layar utama',
   installBtn: 'Pasang',
   installDismiss: 'Nanti',
   iosInstallText:

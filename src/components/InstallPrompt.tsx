@@ -4,7 +4,7 @@ import { isIosDevice, isMobileDevice } from '../utils/device';
 import { useI18n } from '../i18n/context';
 
 const DISMISS_KEY = 'finance:install-dismissed';
-const APP_NAME = 'Uang';
+const APP_NAME = 'Oeank';
 
 function wasDismissed(): boolean {
   try {

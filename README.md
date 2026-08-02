@@ -1,6 +1,8 @@
-# Uang — Personal Finance
+# Oeank
 
-Uang is an offline-first personal finance tracker for iOS, Android, and the web. Track income and expenses in a Google Sheet that you own—the app works completely offline and syncs when you're connected. No accounts, no login required, and you keep full control of your data.
+*karena rakyat desa gapake dollar*
+
+Oeank is an offline-first personal finance tracker for iOS, Android, and the web. Track income and expenses in a Google Sheet that you own—the app works completely offline and syncs when you're connected. No accounts, no login required, and you keep full control of your data.
 
 ## How It Works
 
