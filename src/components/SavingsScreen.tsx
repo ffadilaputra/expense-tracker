@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { useI18n } from '../i18n/context';
 import { formatIDR } from '../utils/money';
 import { summarizeAllSavings } from '../utils/savings';
+import SavingCard from './SavingCard';
 import type { Saving, SavingContribution } from '../types';
 
 interface SavingsScreenProps {
@@ -30,34 +31,12 @@ function SavingsScreen({ savings, contributions, onAdd, onOpen }: SavingsScreenP
           width it is given instead of needing a breakpoint per screen size. */}
       <div className="savings-grid">
         {all.rows.map(({ saving, summary }) => (
-          <button
-            type="button"
-            className={`saving-card ${summary.isComplete ? 'is-complete' : ''}`}
+          <SavingCard
             key={saving.id}
-            onClick={() => onOpen(saving)}
-          >
-            <span className="saving-card__icon" aria-hidden="true">
-              {saving.icon || '◎'}
-            </span>
-            <span className="saving-card__name">{saving.name}</span>
-
-            <span className="saving-card__bar" aria-hidden="true">
-              <span
-                className="saving-card__fill"
-                style={{ width: `${Math.round(summary.fraction * 100)}%` }}
-              />
-            </span>
-
-            <span className="saving-card__figures">
-              {formatIDR(summary.savedAmount)}
-              <span className="saving-card__target"> / {formatIDR(saving.targetAmount)}</span>
-            </span>
-            <span className="saving-card__percent">
-              {summary.isComplete
-                ? t('savingComplete')
-                : `${Math.round(summary.fraction * 100)}%`}
-            </span>
-          </button>
+            saving={saving}
+            summary={summary}
+            onOpen={() => onOpen(saving)}
+          />
         ))}
       </div>
 

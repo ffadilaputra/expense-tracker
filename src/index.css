@@ -339,6 +339,20 @@ button:disabled { opacity: 0.5; cursor: default; }
   max-width: 46ch; text-wrap: pretty;
 }
 
+/* Savings on the transactions page */
+.savings-strip { display: flex; flex-direction: column; gap: var(--space-3); }
+.savings-strip__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.savings-strip__title {
+  margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+}
+.savings-strip__total { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.savings-strip__scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.savings-strip__row { display: inline-flex; gap: var(--space-3); padding-bottom: 2px; }
+/* The card has no width of its own; the strip gives it one so several are
+   visible at once and the next one peeks in to show the row scrolls. */
+.savings-strip__row .saving-card { width: 10.5rem; flex: none; }
+
 /* Savings grid */
 .savings-grid {
   display: grid; gap: var(--space-3);
