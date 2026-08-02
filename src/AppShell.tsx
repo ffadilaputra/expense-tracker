@@ -4,42 +4,45 @@ import usePullToRefresh from './hooks/usePullToRefresh';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import SyncStatus from './components/SyncStatus';
 import LanguageSwitch from './components/LanguageSwitch';
-import PeriodBar from './components/PeriodBar';
-import Summary from './components/Summary';
-import SpendingTrendMessage from './components/SpendingTrendMessage';
-import SpendingChart from './components/SpendingChart';
-import CategoryFilter from './components/CategoryFilter';
-import TransactionList from './components/TransactionList';
-import BackupPanel from './components/BackupPanel';
+import PeriodBar from './features/transactions/PeriodBar';
+import Summary from './features/transactions/Summary';
+import SpendingTrendMessage from './features/transactions/SpendingTrendMessage';
+import SpendingChart from './features/transactions/SpendingChart';
+import CategoryFilter from './features/transactions/CategoryFilter';
+import TransactionList from './features/transactions/TransactionList';
+import BackupPanel from './features/backup/BackupPanel';
 import BottomNav, { type Tab } from './components/BottomNav';
-import AccountsScreen from './components/AccountsScreen';
-import DebtsScreen from './components/DebtsScreen';
-import SavingsScreen from './components/SavingsScreen';
-import SavingsStrip from './components/SavingsStrip';
+import SavingsStrip from './features/savings/SavingsStrip';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import Icon from './components/Icon';
 import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
 import { computeBalance, computeTotals } from './utils/summary';
 import { availableMonths, currentMonth, filterByPeriod, type Period } from './utils/period';
-import { computeSpendingTrend } from './utils/spendingTrend';
-import { summarizeAllDebts } from './utils/debt';
+import { computeSpendingTrend } from './features/transactions/spendingTrend';
+import { summarizeAllDebts } from './features/debts/debt';
 import {
   applyCategoryFilter,
   deriveCategories,
   sameChip,
   type CategoryChip
-} from './utils/categoryFilter';
+} from './features/transactions/categoryChips';
 import type { TranslationKey } from './i18n/translations';
 import type { Account, Debt, Saving, Transaction, TransactionFormData, Transfer } from './types';
 
-const TransactionForm = lazy(() => import('./components/TransactionForm'));
-const AccountForm = lazy(() => import('./components/AccountForm'));
-const TransferForm = lazy(() => import('./components/TransferForm'));
-const DebtForm = lazy(() => import('./components/DebtForm'));
-const DebtDetail = lazy(() => import('./components/DebtDetail'));
-const SavingForm = lazy(() => import('./components/SavingForm'));
-const SavingDetail = lazy(() => import('./components/SavingDetail'));
+// Tab screens are split as well as the modals: the app opens on Transactions,
+// so a user who never switches tabs never downloads the other three, and each
+// pulls its own feature utils out of the initial chunk with it.
+const AccountsScreen = lazy(() => import('./features/accounts/AccountsScreen'));
+const DebtsScreen = lazy(() => import('./features/debts/DebtsScreen'));
+const SavingsScreen = lazy(() => import('./features/savings/SavingsScreen'));
+const TransactionForm = lazy(() => import('./features/transactions/TransactionForm'));
+const AccountForm = lazy(() => import('./features/accounts/AccountForm'));
+const TransferForm = lazy(() => import('./features/accounts/TransferForm'));
+const DebtForm = lazy(() => import('./features/debts/DebtForm'));
+const DebtDetail = lazy(() => import('./features/debts/DebtDetail'));
+const SavingForm = lazy(() => import('./features/savings/SavingForm'));
+const SavingDetail = lazy(() => import('./features/savings/SavingDetail'));
 
 interface AppShellProps {
   onChangeSheet: () => void;
@@ -333,6 +336,41 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     }
   }, [accountEditor, deleteAccount, t]);
 
+  function renderTabScreen() {
+    if (tab === 'accounts') {
+      return (
+        <AccountsScreen
+          accounts={accounts}
+          transactions={transactions}
+          transfers={transfers}
+          onAdd={() => setAccountEditor('new')}
+          onEdit={(account) => setAccountEditor(account)}
+          onTransfer={() => setTransferOpen(true)}
+          onDeleteTransfer={handleTransferDelete}
+        />
+      );
+    }
+    if (tab === 'debts') {
+      return (
+        <DebtsScreen
+          debts={debts}
+          instalments={debtInstalments}
+          todayISO={today}
+          onAdd={() => setDebtEditor('new')}
+          onOpen={(debt) => setOpenDebtId(debt.id)}
+        />
+      );
+    }
+    return (
+      <SavingsScreen
+        savings={savings}
+        contributions={savingContributions}
+        onAdd={() => setSavingEditor('new')}
+        onOpen={(saving) => setOpenSavingId(saving.id)}
+      />
+    );
+  }
+
   return (
     <div className="app">
       <header className="app__header">
@@ -400,31 +438,8 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
         <PullToRefreshIndicator {...pull} />
         {loading ? (
           <LoadingSkeleton />
-        ) : tab === 'savings' ? (
-          <SavingsScreen
-            savings={savings}
-            contributions={savingContributions}
-            onAdd={() => setSavingEditor('new')}
-            onOpen={(saving) => setOpenSavingId(saving.id)}
-          />
-        ) : tab === 'debts' ? (
-          <DebtsScreen
-            debts={debts}
-            instalments={debtInstalments}
-            todayISO={today}
-            onAdd={() => setDebtEditor('new')}
-            onOpen={(debt) => setOpenDebtId(debt.id)}
-          />
-        ) : tab === 'accounts' ? (
-          <AccountsScreen
-            accounts={accounts}
-            transactions={transactions}
-            transfers={transfers}
-            onAdd={() => setAccountEditor('new')}
-            onEdit={(account) => setAccountEditor(account)}
-            onTransfer={() => setTransferOpen(true)}
-            onDeleteTransfer={handleTransferDelete}
-          />
+        ) : tab !== 'transactions' ? (
+          <Suspense fallback={<LoadingSkeleton />}>{renderTabScreen()}</Suspense>
         ) : (
           <>
         <PeriodBar period={period} todayISO={today} months={months} onChange={setPeriod} />
