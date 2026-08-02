@@ -4,6 +4,7 @@ import { formatIDR } from '../../utils/money';
 import { summarizeAllSavings } from './savings';
 import SavingCard from './SavingCard';
 import type { Saving, SavingContribution } from '../../types';
+import './SavingsScreen.css';
 
 interface SavingsScreenProps {
   savings: Saving[];

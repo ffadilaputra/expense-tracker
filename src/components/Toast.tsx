@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useI18n } from '../i18n/context';
+import './Toast.css';
 
 const AUTO_DISMISS_MS = 5000;
 const MAX_VISIBLE = 3;

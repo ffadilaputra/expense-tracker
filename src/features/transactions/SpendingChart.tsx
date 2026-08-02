@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/context';
 import SpendingHeatmap from './SpendingHeatmap';
 import SpendingDoughnut from './SpendingDoughnut';
 import type { Transaction } from '../../types';
+import './SpendingChart.css';
 
 type View = 'activity' | 'breakdown';
 

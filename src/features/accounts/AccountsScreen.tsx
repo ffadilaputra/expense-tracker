@@ -8,6 +8,7 @@ import {
   totalAcrossAccounts
 } from './accounts';
 import type { Account, Transaction, Transfer } from '../../types';
+import './AccountsScreen.css';
 
 interface AccountsScreenProps {
   accounts: Account[];

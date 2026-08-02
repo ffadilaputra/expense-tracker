@@ -1,0 +1,4 @@
+/* Transaction list */
+.txn-list { display: flex; flex-direction: column; gap: var(--space-5); }
+.txn-group { display: flex; flex-direction: column; gap: var(--space-1); }
+.txn-group__heading { margin: 0 0 var(--space-1); }

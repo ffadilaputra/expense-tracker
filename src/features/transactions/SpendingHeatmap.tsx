@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/context';
 import { buildHeatmap } from './heatmap';
 import { formatIDR } from '../../utils/money';
 import type { Transaction } from '../../types';
+import './SpendingHeatmap.css';
 
 const WEEKS = 26;
 

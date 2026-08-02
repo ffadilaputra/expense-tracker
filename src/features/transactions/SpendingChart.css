@@ -1,0 +1,16 @@
+/* Spending chart shell */
+.spending { display: flex; flex-direction: column; gap: var(--space-3); }
+.spending__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.spending__title {
+  margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+}
+.spending__views { display: flex; gap: var(--space-1); }
+.spending__view {
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  border-radius: var(--radius-pill); padding: 0.2rem 0.7rem; font-size: 0.75rem;
+  min-height: 30px;
+}
+.spending__view.active {
+  background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 600;
+}

@@ -1,0 +1,12 @@
+/* Spending trend message */
+.trend {
+  margin: 0; display: flex; align-items: baseline; gap: var(--space-2);
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+  border: 1px solid var(--line); background: var(--surface);
+  font-size: 0.85rem; line-height: 1.5; color: var(--text);
+  text-wrap: pretty;
+}
+.trend__arrow { font-weight: 700; }
+.trend--down .trend__arrow { color: var(--income); }
+.trend--up .trend__arrow { color: var(--expense); }
+.trend--same .trend__arrow { color: var(--muted); }

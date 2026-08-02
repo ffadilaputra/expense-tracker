@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useI18n } from '../../i18n/context';
 import { currentMonth, monthKey, monthName, previousMonth, type Period } from '../../utils/period';
+import './PeriodBar.css';
 
 interface PeriodBarProps {
   period: Period;

@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n/context';
 import type { Locale } from '../i18n/locale';
+import './LanguageSwitch.css';
 
 const OPTIONS: { value: Locale; label: string }[] = [
   { value: 'en', label: 'EN' },

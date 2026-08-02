@@ -1,0 +1,11 @@
+/* Backup & restore */
+.backup { display: flex; flex-direction: column; gap: 1.25rem; }
+.backup__section { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+.backup__heading { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.backup__file { display: none; }
+.backup__preview {
+  display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-start;
+  width: 100%; padding: 0.75rem; border: 1px solid var(--line); border-radius: 10px;
+}
+.backup__filename { margin: 0; font-size: 0.85rem; font-weight: 600; word-break: break-all; }
+.backup__counts { margin: 0; padding-left: 1.1rem; font-size: 0.85rem; line-height: 1.5; }

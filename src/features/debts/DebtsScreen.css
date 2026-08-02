@@ -1,0 +1,19 @@
+/* Debts */
+.debt-row {
+  display: flex; flex-direction: column; gap: var(--space-2); width: 100%; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  color: var(--text); padding: var(--space-4);
+}
+@media (hover: hover) { .debt-row:hover { border-color: var(--muted); } }
+.debt-row:active { transform: translateY(1px); }
+.debt-row__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+.debt-row__name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.debt-row__remaining { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.debt-row__bar { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
+.debt-row__fill { display: block; height: 100%; background: var(--accent); }
+.debt-row__meta {
+  display: flex; justify-content: space-between; gap: var(--space-3);
+  font-size: 0.75rem; color: var(--muted);
+}
+.debt-row__overdue { color: var(--expense); font-weight: 600; }
+.debt-row__settled { color: var(--income); font-weight: 600; }

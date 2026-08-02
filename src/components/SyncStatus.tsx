@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useI18n } from '../i18n/context';
+import './SyncStatus.css';
 
 interface SyncStatusProps {
   isOnline: boolean;

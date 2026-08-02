@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/context';
 import { formatIDR } from '../../utils/money';
 import type { SavingSummary } from './savings';
 import type { Saving } from '../../types';
+import './SavingCard.css';
 
 interface SavingCardProps {
   saving: Saving;

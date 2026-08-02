@@ -4,6 +4,7 @@ import { formatIDR } from '../../utils/money';
 import { OTHER, buildBreakdown, type BreakdownSegment } from './categoryBreakdown';
 import { UNCATEGORIZED } from './categoryChips';
 import type { Transaction } from '../../types';
+import './SpendingDoughnut.css';
 
 interface SpendingDoughnutProps {
   /** Already scoped to the selected period by AppShell. */

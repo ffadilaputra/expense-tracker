@@ -1,0 +1,37 @@
+/* Doughnut */
+.doughnut { display: flex; flex-direction: column; gap: var(--space-4); align-items: center; }
+.doughnut__figure { position: relative; width: min(220px, 60vw); }
+.doughnut__svg { display: block; width: 100%; height: auto; }
+.doughnut__arc { transition: opacity var(--ease); cursor: default; }
+.doughnut__arc--0, .doughnut__swatch--0 { stroke: var(--cat-0); background: var(--cat-0); }
+.doughnut__arc--1, .doughnut__swatch--1 { stroke: var(--cat-1); background: var(--cat-1); }
+.doughnut__arc--2, .doughnut__swatch--2 { stroke: var(--cat-2); background: var(--cat-2); }
+.doughnut__arc--3, .doughnut__swatch--3 { stroke: var(--cat-3); background: var(--cat-3); }
+.doughnut__arc--4, .doughnut__swatch--4 { stroke: var(--cat-4); background: var(--cat-4); }
+.doughnut__arc--5, .doughnut__swatch--5 { stroke: var(--cat-5); background: var(--cat-5); }
+.doughnut__arc--other, .doughnut__swatch--other { stroke: var(--cat-other); background: var(--cat-other); }
+.doughnut__centre {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.1rem;
+  pointer-events: none; text-align: center; padding: 0 22%;
+}
+.doughnut__centre-value {
+  font-size: 1rem; font-weight: 700; letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere;
+}
+.doughnut__centre-label { font-size: 0.65rem; color: var(--muted); line-height: 1.2; }
+.doughnut__legend { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; }
+.doughnut__legend-row {
+  display: grid; grid-template-columns: auto 1fr auto auto;
+  align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-2); border-radius: var(--radius-sm);
+  font-size: 0.85rem; transition: background-color var(--ease);
+}
+.doughnut__legend-row.is-active { background: var(--surface); }
+.doughnut__swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.doughnut__legend-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doughnut__legend-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.doughnut__legend-share {
+  color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums;
+  min-width: 2.5rem; text-align: right;
+}

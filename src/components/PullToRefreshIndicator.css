@@ -1,0 +1,10 @@
+/* PullToRefreshIndicator.tsx: sits in normal flow at the top of .app__main,
+   its height driven inline by pull distance; only the icon rotation and
+   settle-back transition are animated here. */
+.ptr { display: flex; align-items: center; justify-content: center; gap: 0.5rem; overflow: hidden; color: var(--muted); font-size: 0.8rem; transition: height 0.2s ease-out; }
+.ptr__spinner { display: inline-block; transition: transform 0.15s linear; }
+.ptr__spinner.is-spinning { animation: ptr-spin 0.7s linear infinite; }
+.ptr__label { white-space: nowrap; }
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
+}

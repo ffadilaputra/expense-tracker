@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { useI18n } from '../../i18n/context';
 import { formatIDR } from '../../utils/money';
 import type { AllDebtsSummary } from './debt';
+import './DebtProgressChart.css';
 
 interface DebtProgressChartProps {
   summary: AllDebtsSummary;

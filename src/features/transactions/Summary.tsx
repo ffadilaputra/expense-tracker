@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/context';
 import { formatIDR } from '../../utils/money';
 import type { AllDebtsSummary } from '../debts/debt';
 import { currentMonth, monthName, previousMonth, type Period } from '../../utils/period';
+import './Summary.css';
 
 interface SummaryProps {
   /** All-time: a balance scoped to a period would be a different number. */

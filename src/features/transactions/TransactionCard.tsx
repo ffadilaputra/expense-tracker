@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { useI18n } from '../../i18n/context';
 import { formatIDR } from '../../utils/money';
 import type { Transaction } from '../../types';
+import './TransactionCard.css';
 
 interface TransactionCardProps {
   transaction: Transaction;

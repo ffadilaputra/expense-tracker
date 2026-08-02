@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useI18n } from '../../i18n/context';
 import { sameChip, UNCATEGORIZED, type CategoryChip } from './categoryChips';
+import './CategoryFilter.css';
 
 interface CategoryFilterProps {
   chips: CategoryChip[];

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import useInstallPrompt from '../hooks/useInstallPrompt';
 import { isIosDevice, isMobileDevice } from '../utils/device';
 import { useI18n } from '../i18n/context';
+import './InstallPrompt.css';
 
 const DISMISS_KEY = 'finance:install-dismissed';
 const APP_NAME = 'Oeank';

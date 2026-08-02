@@ -1,0 +1,63 @@
+.app { min-height: 100dvh; }
+/* The bar itself spans the viewport so its background and bottom border reach
+   the edges, while its contents sit in the same centred column as .app__main.
+   Without this the title and sync row hug the window edges on a wide screen
+   while the content below is centred, so nothing lines up. */
+.app__header {
+  position: sticky; top: 0; z-index: 10; background: var(--bg);
+  padding: calc(var(--space-4) + env(safe-area-inset-top)) 0 var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+.app__header-inner {
+  max-width: var(--max); margin: 0 auto;
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.app__header-row { display: flex; align-items: center; justify-content: space-between; }
+.app__title { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+.app__header-controls { display: flex; align-items: center; gap: var(--space-2); }
+.app__change-sheet {
+  border: none; background: transparent; color: var(--muted);
+  font-size: 1.5rem; line-height: 1; padding: 0.25rem 0.5rem;
+}
+.app__main {
+  max-width: var(--max); margin: 0 auto;
+  padding-top: var(--space-5);
+  padding-left: max(var(--space-4), env(safe-area-inset-left));
+  padding-right: max(var(--space-4), env(safe-area-inset-right));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--space-7));
+  display: flex; flex-direction: column; gap: var(--space-6);
+}
+/* Header menu */
+.app__menu { position: relative; }
+.app__menu-backdrop { position: fixed; inset: 0; z-index: 20; }
+.app__menu-list {
+  position: absolute; right: 0; top: calc(100% + 0.35rem); z-index: 21;
+  display: flex; flex-direction: column; min-width: 12rem;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  background: var(--surface); box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+}
+.app__menu-list button {
+  border: none; background: transparent; color: var(--text);
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.7rem 0.9rem; text-align: left; min-height: 44px; font-size: 0.9rem;
+}
+.app__menu-list svg { color: var(--muted); flex-shrink: 0; }
+.app__menu-list button + button { border-top: 1px solid var(--line); }
+/* FAB */
+.fab {
+  position: fixed; right: max(1rem, env(safe-area-inset-right));
+  bottom: calc(56px + env(safe-area-inset-bottom) + 1rem);
+  width: 56px; height: 56px; border-radius: 50%; border: none;
+  background: var(--accent); color: var(--bg); font-size: 1.8rem; line-height: 1;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25); z-index: 20;
+}
+/* Aligned to the right edge of the content column. max() floors it: between
+   640px and the content width the raw calc goes negative and pushed the button
+   off the right of the screen. */
+@media (min-width: 640px) {
+  .fab {
+    right: max(1rem, env(safe-area-inset-right), calc((100vw - var(--max)) / 2 + 1rem));
+  }
+}

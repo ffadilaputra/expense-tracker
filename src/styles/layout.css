@@ -1,0 +1,41 @@
+/* Layout primitives shared by more than one screen.
+   These names read as if they belong to one feature - .accounts is the screen
+   frame the debts and savings screens use too, .txn-list__empty is every empty
+   state, .backup__help is any form hint, .debt-detail is the detail panel the
+   savings detail also uses. Splitting the stylesheet by component put them out
+   of reach of their other callers, which is what this file fixes; the names are
+   left alone so the change stays a move rather than a rename. */
+/* Accounts screen */
+.accounts { display: flex; flex-direction: column; gap: var(--space-5); }
+.accounts__head { display: flex; align-items: center; justify-content: space-between; }
+.accounts__title { margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.accounts__add {
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  border-radius: 999px; width: 36px; height: 36px; font-size: 1.2rem; line-height: 1;
+}
+.accounts__unassigned, .accounts__total {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-4);
+  padding-top: var(--space-3); border-top: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.accounts__unassigned { color: var(--muted); font-size: 0.9rem; }
+.accounts__total { font-weight: 700; font-size: 1.05rem; }
+.accounts__note {
+  margin: 0; font-size: 0.75rem; color: var(--muted); line-height: 1.5;
+  max-width: 46ch; text-wrap: pretty;
+}
+.transfer-row__delete:hover { color: var(--expense); }
+.transfer-row__delete {
+  border: none; background: transparent; color: var(--muted);
+  font-size: 1.1rem; line-height: 1; padding: 0.2rem 0.35rem; min-height: 32px;
+}
+.txn-list__empty {
+  color: var(--muted); text-align: center; padding: var(--space-7) var(--space-4);
+  text-wrap: balance;
+}
+.backup__help { margin: 0; font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+.backup__warn { margin: 0; font-size: 0.85rem; color: var(--expense); line-height: 1.4; }
+.debt-detail { display: flex; flex-direction: column; gap: var(--space-4); }
+.debt-detail__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.debt-detail__name { margin: 0; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.015em; }
+.debt-detail__summary { margin: var(--space-1) 0 0; font-size: 0.8rem; color: var(--muted); }

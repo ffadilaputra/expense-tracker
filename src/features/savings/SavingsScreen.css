@@ -1,0 +1,7 @@
+/* Savings grid */
+.savings-grid {
+  display: grid; gap: var(--space-3);
+  /* auto-fill with a floor, so the column count follows the width rather than
+     a breakpoint per screen size: two on a phone, more on a desktop. */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}

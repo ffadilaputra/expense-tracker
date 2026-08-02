@@ -1,0 +1,18 @@
+/* Toast (portalled to body) */
+.toast-viewport { position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 40; display: flex; flex-direction: column; gap: 0.5rem; width: min(92vw, 420px); }
+.toast { display: flex; align-items: center; gap: 0.6rem; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0.7rem 0.9rem; box-shadow: 0 6px 20px rgba(0,0,0,0.2); opacity: 0; transform: translateY(8px); transition: opacity 0.2s, transform 0.2s; }
+.toast--visible { opacity: 1; transform: translateY(0); }
+.toast--error { border-color: var(--expense); }
+.toast__text { margin: 0; flex: 1; font-size: 0.9rem; }
+.toast__dismiss { border: none; background: transparent; color: var(--muted); }
+/* Nothing here any more: .summary__amount is sized by clamp(), and the heatmap
+   cells scale with their container. Both previously had fixed overrides that
+   fought the fluid sizing. */
+/* ---------------------------------------------------------------------- */
+/* Reconcile: class names emitted by components ported from recipe-app    */
+/* that the stylesheet above did not already cover.                       */
+/* ---------------------------------------------------------------------- */
+/* Toast.tsx: tone modifier is `toast--${tone}` (success | error), plus an
+   icon glyph next to the text that had no sizing rule. */
+.toast--success { border-color: var(--income); }
+.toast__icon { flex-shrink: 0; }

@@ -4,6 +4,7 @@ import { formatIDR } from '../../utils/money';
 import { summarizeAllDebts, type DebtSummary } from './debt';
 import DebtProgressChart from './DebtProgressChart';
 import type { Debt, DebtInstalment } from '../../types';
+import './DebtsScreen.css';
 
 interface DebtsScreenProps {
   debts: Debt[];

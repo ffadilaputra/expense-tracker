@@ -4,6 +4,7 @@ import { groupByDate, relativeDay, shortDate, weekdayName } from './dateGroups';
 import TransactionCard from './TransactionCard';
 import type { Transaction } from '../../types';
 import type { TranslationKey } from '../../i18n/translations';
+import './TransactionList.css';
 
 interface TransactionListProps {
   /** Already scoped to the period and category by AppShell. */

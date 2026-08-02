@@ -5,6 +5,7 @@ import * as sheetApi from '../../api/sheetApi';
 import { buildBackup, parseBackup, summarizeRestore, type BackupFile } from './backup';
 import type { Account, Transaction, Transfer } from '../../types';
 import type { TranslationKey } from '../../i18n/translations';
+import './BackupPanel.css';
 
 interface BackupPanelProps {
   transactions: Transaction[];

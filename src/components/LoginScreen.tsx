@@ -3,6 +3,7 @@ import { isValidAppsScriptUrl, setStoredApiUrl } from '../config/apiUrl';
 import { verifyApiUrl } from '../api/sheetApi';
 import { useI18n } from '../i18n/context';
 import LanguageSwitch from './LanguageSwitch';
+import './LoginScreen.css';
 
 interface LoginScreenProps {
   onConnected: (url: string) => void;

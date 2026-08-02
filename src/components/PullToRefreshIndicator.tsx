@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n/context';
 import type { PullToRefreshState } from '../hooks/usePullToRefresh';
+import './PullToRefreshIndicator.css';
 
 /**
  * The spinner/arrow that follows the finger during a pull-to-refresh.

@@ -1,0 +1,17 @@
+@media (min-width: 640px) {
+  .modal__panel--wide { max-width: 640px; }
+}
+/* Modal (full-screen mobile, centered dialog desktop) */
+.modal { position: fixed; inset: 0; z-index: 30; display: flex; }
+.modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.4); }
+.modal__panel {
+  position: relative; margin-top: auto; width: 100%; background: var(--surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: var(--space-5);
+  max-height: 92dvh; overflow-y: auto;
+}
+.modal__title { margin: 0 0 var(--space-5); font-size: 1.15rem; font-weight: 700; letter-spacing: -0.015em; }
+.modal__loading { color: var(--muted); }
+@media (min-width: 640px) {
+  .modal { align-items: center; justify-content: center; }
+  .modal__panel { margin: 0; max-width: 480px; border-radius: var(--radius); }
+}

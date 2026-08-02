@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useI18n } from '../i18n/context';
 import Icon from './Icon';
+import './BottomNav.css';
 
 export type Tab = 'transactions' | 'accounts' | 'debts' | 'savings';
 

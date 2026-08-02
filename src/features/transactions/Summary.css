@@ -1,0 +1,64 @@
+/* Summary */
+.summary { display: flex; flex-direction: column; gap: var(--space-4); }
+/* Hero balance card. Sized and coloured well clear of the two stat cards so
+   the three never read as equal siblings. */
+.summary__hero {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  background: var(--hero-bg); color: var(--hero-text);
+  border: 1px solid var(--hero-border); border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+/* The eyebrow rule sets --muted, which has no contrast on the hero surface. */
+.summary__hero .summary__label { color: inherit; opacity: 0.75; }
+.summary__hero .summary__scope { opacity: 0.8; }
+.summary__label {
+  display: flex; align-items: baseline; gap: var(--space-2);
+  color: var(--muted); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500;
+}
+/* Says out loud that the balance is not period-scoped, unlike the cards. */
+.summary__scope { text-transform: none; letter-spacing: 0; font-weight: 400; opacity: 0.75; }
+.summary__amount {
+  font-size: clamp(2.25rem, 9vw, 3rem); font-weight: 700;
+  letter-spacing: -0.035em; line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.summary__rule {
+  width: 2.5rem; height: 3px; border-radius: var(--radius-pill);
+  background: currentColor; opacity: 0.85; margin-top: var(--space-1);
+}
+.summary__period {
+  margin: 0; color: var(--muted); font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500;
+}
+.summary__cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.stat-card {
+  display: flex; flex-direction: column; gap: var(--space-2); min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface);
+}
+.stat-card__label {
+  display: flex; align-items: center; gap: var(--space-1);
+  color: var(--muted); font-size: 0.75rem; font-weight: 500;
+}
+.stat-card__arrow { font-size: 0.9rem; line-height: 1; }
+.stat-card__value {
+  font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+.stat-card--income .stat-card__arrow, .stat-card--income .stat-card__value { color: var(--income); }
+.stat-card--expense .stat-card__arrow, .stat-card--expense .stat-card__value { color: var(--expense); }
+/* Debt card on the summary */
+.debt-card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface);
+}
+.debt-card__overdue { color: var(--expense); font-weight: 600; text-transform: none; letter-spacing: 0; }
+.debt-card__value {
+  font-size: 1.05rem; font-weight: 600; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.debt-card__bar { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
+.debt-card__fill { display: block; height: 100%; background: var(--accent); }
+.debt-card__meta { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }

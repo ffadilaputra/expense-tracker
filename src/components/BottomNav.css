@@ -1,0 +1,20 @@
+/* Bottom navigation */
+.bottom-nav {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 15;
+  display: flex; background: var(--surface); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* No horizontal padding on purpose: below the content width the tabs stay
+   full-bleed as a tab bar should, and above it they stop at the same edges as
+   the content instead of stretching across the whole window. */
+.bottom-nav__inner {
+  display: flex; width: 100%; max-width: var(--max); margin: 0 auto;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+.bottom-nav__btn {
+  flex: 1; border: none; background: transparent; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
+  padding: 0.5rem; min-height: 56px; font-size: 0.75rem;
+}
+.bottom-nav__btn.active { color: var(--accent); font-weight: 600; }

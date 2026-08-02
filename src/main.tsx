@@ -4,6 +4,8 @@ import App from './App';
 import { I18nProvider } from './i18n/context';
 import { ToastProvider } from './components/Toast';
 import './index.css';
+import './styles/forms.css';
+import './styles/layout.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('#root element not found');

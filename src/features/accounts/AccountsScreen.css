@@ -1,0 +1,32 @@
+.owner-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.owner-group__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.owner-group__name { margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.owner-group__subtotal {
+  font-size: 0.85rem; font-weight: 600; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.account-row {
+  display: flex; align-items: center; gap: var(--space-3); width: 100%; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  color: var(--text); padding: var(--space-3) var(--space-4); min-height: 52px;
+}
+@media (hover: hover) {
+  .account-row:hover { border-color: var(--muted); }
+}
+.account-row:active { transform: translateY(1px); }
+.account-row__icon { font-size: 1.1rem; width: 1.5rem; text-align: center; }
+.account-row__name { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; }
+.account-row__pending { font-size: 0.7rem; color: var(--muted); }
+.account-row__balance { font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.account-row__balance.is-negative { color: var(--expense); }
+/* Transfers */
+.accounts__transfer { align-self: flex-start; }
+.transfers { display: flex; flex-direction: column; gap: var(--space-2); }
+.transfer-row {
+  display: flex; align-items: center; gap: var(--space-3);
+  border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface);
+  padding: var(--space-3) var(--space-4); font-size: 0.85rem;
+}
+.transfer-row__route { flex: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem; }
+.transfer-row__date { font-size: 0.7rem; color: var(--muted); }
+.transfer-row__amount { font-weight: 600; font-variant-numeric: tabular-nums; }

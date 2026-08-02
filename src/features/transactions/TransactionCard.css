@@ -1,0 +1,22 @@
+/* Transaction card account label */
+.txn-card__account { font-size: 0.7rem; color: var(--muted); margin-left: 0.4rem; }
+.txn-card {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  width: 100%; text-align: left; background: transparent; border: none;
+  padding: var(--space-3) var(--space-2); border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--line); min-height: 48px;
+}
+/* Negative margin keeps the row's text on the column edge while its hover
+   surface extends past it, so the highlight reads as a full-width row. */
+.txn-card { margin-inline: calc(var(--space-2) * -1); }
+@media (hover: hover) {
+  .txn-card:hover { background: var(--surface); border-bottom-color: transparent; }
+}
+.txn-card:active { transform: translateY(1px); }
+.txn-card__main { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.txn-card__category { font-weight: 600; }
+.txn-card__note { color: var(--muted); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.txn-card__pending { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.txn-card__amount { font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.txn-card__amount--income { color: var(--income); }
+.txn-card__amount--expense { color: var(--expense); }

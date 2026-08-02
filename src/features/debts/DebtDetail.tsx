@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/context';
 import { formatIDR, parseAmount } from '../../utils/money';
 import { buildSchedule, summarizeDebt, type ScheduleRow } from './debt';
 import type { Account, Debt, DebtInstalment } from '../../types';
+import './DebtDetail.css';
 
 interface DebtDetailProps {
   debt: Debt;

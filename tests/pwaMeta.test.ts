@@ -7,7 +7,9 @@ import { join } from 'node:path';
 // specially - so these read from disk, like the Apps Script harness does.
 const root = join(__dirname, '..');
 const html = readFileSync(join(root, 'index.html'), 'utf8');
-const css = readFileSync(join(root, 'src', 'index.css'), 'utf8');
+// index.css holds only tokens and element defaults now; the shell rules that
+// carry the safe-area insets live beside AppShell.
+const css = readFileSync(join(root, 'src', 'AppShell.css'), 'utf8');
 const manifest = JSON.parse(
   readFileSync(join(root, 'public', 'manifest.webmanifest'), 'utf8')
 );

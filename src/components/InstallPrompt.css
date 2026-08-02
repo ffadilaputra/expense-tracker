@@ -1,0 +1,12 @@
+/* InstallPrompt.tsx: a dismissible banner rendered above the app/login
+   content, prompting the user to add the PWA to their home screen. */
+.install-banner {
+  display: flex; align-items: center; gap: 0.6rem;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: 0.6rem 1rem; font-size: 0.85rem;
+}
+.install-banner__icon { font-size: 1.2rem; }
+.install-banner__text { margin: 0; flex: 1; color: var(--text); }
+.install-banner__actions { display: flex; align-items: center; gap: 0.5rem; }
+.install-banner__install { padding: 0.4rem 0.8rem; min-height: 32px; font-size: 0.8rem; }
+.install-banner__dismiss { border: none; background: transparent; color: var(--muted); font-size: 1rem; padding: 0.2rem 0.4rem; }

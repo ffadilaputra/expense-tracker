@@ -29,6 +29,8 @@ import {
 } from './features/transactions/categoryChips';
 import type { TranslationKey } from './i18n/translations';
 import type { Account, Debt, Saving, Transaction, TransactionFormData, Transfer } from './types';
+import './AppShell.css';
+import './styles/modal.css';
 
 // Tab screens are split as well as the modals: the app opens on Transactions,
 // so a user who never switches tabs never downloads the other three, and each

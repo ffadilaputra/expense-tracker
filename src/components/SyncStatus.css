@@ -1,0 +1,10 @@
+.sync-status__refreshing { font-style: italic; }
+/* Sync status */
+.sync-status { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.4rem 0; font-size: 0.8rem; color: var(--muted); }
+.sync-status__row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.sync-status__row--failed { color: var(--expense); }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.sync-dot.is-online { background: var(--income); }
+.sync-dot.is-offline { background: var(--muted); }
+.sync-status__sep { opacity: 0.5; }
+.sync-status__btn { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.75rem; }

@@ -1,0 +1,19 @@
+.saving-card {
+  display: flex; flex-direction: column; gap: var(--space-2); text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface);
+  color: var(--text); padding: var(--space-4); min-width: 0;
+}
+@media (hover: hover) { .saving-card:hover { border-color: var(--muted); } }
+.saving-card:active { transform: translateY(1px); }
+.saving-card.is-complete { border-color: var(--income); }
+.saving-card__icon { font-size: 1.4rem; line-height: 1; }
+.saving-card__name {
+  font-weight: 600; font-size: 0.9rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.saving-card__bar { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
+.saving-card__fill { display: block; height: 100%; background: var(--income); }
+.saving-card__figures { font-size: 0.8rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.saving-card__target { color: var(--muted); font-weight: 400; }
+.saving-card__percent { font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.saving-card__reached { color: var(--income); font-weight: 600; text-transform: none; letter-spacing: 0; }
