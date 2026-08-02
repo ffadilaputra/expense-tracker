@@ -464,18 +464,11 @@ function deleteDebt(id) {
   var rowIndex = findRowIndexById(sheet, id);
   if (rowIndex === -1) return { success: false, error: 'Debt not found' };
 
-  // Refuse while payments exist: those expenses are still in the ledger, and
-  // dropping the debt would orphan them with no way back.
-  var instalments = readTab(INSTALMENTS_SHEET, INSTALMENT_HEADERS, instalmentRowToObject);
-  var paid = 0;
-  for (var i = 0; i < instalments.length; i++) {
-    if (instalments[i].debtId === String(id) && instalments[i].paidDate !== '') paid++;
-  }
-  if (paid > 0) {
-    return { success: false, error: 'Debt has ' + paid + ' paid instalment(s)', data: { paid: paid } };
-  }
-
-  // Unpaid override rows carry nothing worth keeping once the debt is gone.
+  // The expenses those payments created are removed by the client, which
+  // queues a delete per linked transaction before this one so the cascade
+  // still works with no connection. This function owns the debt and its
+  // instalment rows only; doing the transactions here as well would delete
+  // them twice and leave the second attempt refused.
   var sheetI = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(INSTALMENTS_SHEET);
   if (sheetI) {
     var values = sheetI.getDataRange().getValues();

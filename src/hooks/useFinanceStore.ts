@@ -604,24 +604,63 @@ export default function useFinanceStore(): FinanceStore {
     [persistDebts, queueChange, runSync]
   );
 
+  /**
+   * Removes the debt, its instalment rows, and the expenses its payments
+   * created.
+   *
+   * The transactions are deleted here rather than on the sheet so the cascade
+   * still works offline and so the ledger updates immediately; doing it in both
+   * places would delete each expense twice and leave the second attempt
+   * refused. Every id is collected before anything is removed - reading them
+   * back out of state afterwards would find the instalments already gone.
+   */
   const deleteDebt = useCallback(
     async (id: string): Promise<void> => {
+      const linkedIds = new Set(
+        instalmentsRef.current
+          .filter((i) => i.debtId === id && i.transactionId)
+          .map((i) => i.transactionId as string)
+      );
+
+      // Removed in one pass rather than by calling deleteTransaction per id.
+      // That reads txnsRef, which only updates on re-render, so a loop would
+      // filter the same stale array every time and undo every removal but the
+      // last.
+      if (linkedIds.size > 0) {
+        persistTransactions(txnsRef.current.filter((t) => !linkedIds.has(t.id)));
+      }
       persistDebts(debtsRef.current.filter((d) => d.id !== id));
       persistInstalments(instalmentsRef.current.filter((i) => i.debtId !== id));
 
-      const queue = loadQueue();
+      let queue = loadQueue();
+
+      for (const transactionId of linkedIds) {
+        // An expense still queued as an add never reached the sheet, so
+        // dropping the add is the whole deletion.
+        const unsyncedAdd = queue.some(
+          (e) => e.entity === 'transaction' && e.type === 'add' && e.id === transactionId
+        );
+        queue = queue.filter((e) => !(e.entity === 'transaction' && e.id === transactionId));
+        if (!unsyncedAdd) {
+          queue.push({ entity: 'transaction', type: 'delete', id: transactionId, payload: null });
+        }
+      }
+
       const wasUnsyncedAdd = queue.some(
         (e) => e.entity === 'debt' && e.type === 'add' && e.id === id
       );
-      const kept = queue.filter(
-        (e) => !(e.entity === 'debt' && e.id === id) && !(e.entity === 'debtInstalment' && e.payload?.debtId === id)
+      queue = queue.filter(
+        (e) =>
+          !(e.entity === 'debt' && e.id === id) &&
+          !(e.entity === 'debtInstalment' && e.payload?.debtId === id)
       );
-      if (!wasUnsyncedAdd) kept.push({ entity: 'debt', type: 'delete', id, payload: null });
-      saveQueue(kept);
+      if (!wasUnsyncedAdd) queue.push({ entity: 'debt', type: 'delete', id, payload: null });
+
+      saveQueue(queue);
       syncCounts();
       if (navigator.onLine) runSync();
     },
-    [persistDebts, persistInstalments, syncCounts, runSync]
+    [persistTransactions, persistDebts, persistInstalments, syncCounts, runSync]
   );
 
   /** Upsert of one instalment override row, keyed by (debtId, number). */

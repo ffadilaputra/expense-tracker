@@ -301,14 +301,27 @@ describe('debts', () => {
     expect(get(api, 'list').data.debtInstalments[0].amount).toBeNull();
   });
 
-  it('refuses to delete a debt that has a paid instalment', () => {
+  it('deletes a debt that has paid instalments, taking the rows with it', () => {
     const { api, debtId } = withDebt();
     post(api, 'saveInstalment', { debtId, number: 1, paidDate: '2026-09-05', transactionId: 't1' });
 
-    const refused = post(api, 'deleteDebt', { id: debtId });
-    expect(refused.success).toBe(false);
-    expect(refused.data.paid).toBe(1);
-    expect(get(api, 'list').data.debts).toHaveLength(1);
+    expect(post(api, 'deleteDebt', { id: debtId })).toEqual({ success: true });
+    expect(get(api, 'list').data.debts).toEqual([]);
+    expect(get(api, 'list').data.debtInstalments).toEqual([]);
+  });
+
+  it('leaves another debt’s instalments alone when one is deleted', () => {
+    const { api, debtId } = withDebt();
+    const other = post(api, 'addDebt', {
+      name: 'Phone', totalAmount: 100, instalmentCount: 2, firstDueDate: '2026-09-05'
+    }).data.id;
+    post(api, 'saveInstalment', { debtId, number: 1, paidDate: '2026-09-05', transactionId: 't1' });
+    post(api, 'saveInstalment', { debtId: other, number: 1, amount: 50 });
+
+    post(api, 'deleteDebt', { id: debtId });
+    const left = get(api, 'list').data.debtInstalments;
+    expect(left).toHaveLength(1);
+    expect(left[0].debtId).toBe(other);
   });
 
   it('deletes a debt with only unpaid overrides, clearing them too', () => {
