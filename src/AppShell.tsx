@@ -45,6 +45,7 @@ const DebtForm = lazy(() => import('./features/debts/DebtForm'));
 const DebtDetail = lazy(() => import('./features/debts/DebtDetail'));
 const SavingForm = lazy(() => import('./features/savings/SavingForm'));
 const SavingDetail = lazy(() => import('./features/savings/SavingDetail'));
+const ThemePanel = lazy(() => import('./components/ThemePanel'));
 
 interface AppShellProps {
   onChangeSheet: () => void;
@@ -114,6 +115,7 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const [submitting, setSubmitting] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('transactions');
   const [accountEditor, setAccountEditor] = useState<AccountEditor>(null);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -411,6 +413,17 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
                       role="menuitem"
                       onClick={() => {
                         setMenuOpen(false);
+                        setThemeOpen(true);
+                      }}
+                    >
+                      <Icon name="theme" />
+                      {t('themeMenuItem')}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
                         onChangeSheet();
                       }}
                     >
@@ -488,6 +501,18 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
         <button type="button" className="fab" aria-label={t('addFabLabel')} onClick={() => setEditor('new')}>
           +
         </button>
+      )}
+
+      {themeOpen && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label={t('themeTitle')}>
+          <div className="modal__backdrop" onClick={() => setThemeOpen(false)} />
+          <div className="modal__panel">
+            <h2 className="modal__title">{t('themeTitle')}</h2>
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <ThemePanel onClose={() => setThemeOpen(false)} />
+            </Suspense>
+          </div>
+        </div>
       )}
 
       {backupOpen && (

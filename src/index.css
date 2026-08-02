@@ -21,6 +21,8 @@
   --muted: #6b7280;
   --line: #ececec;
   --accent: #111111;
+  --on-accent: #ffffff;
+  --accent-strong: #111111;
   --income: #157f3b;
   --expense: #b23b3b;
   --heat-0: #eef0f1;
@@ -67,9 +69,10 @@
   --cat-other: #9aa1a8;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --bg: #0f1113; --surface: #16191c; --text: #f3f4f6; --muted: #9aa1a8;
     --line: #23272b; --accent: #f3f4f6; --income: #4ccf7f; --expense: #e57373;
+    --on-accent: #111111; --accent-strong: #f3f4f6;
     --heat-0: #23272b; --heat-1: #1e3a2a; --heat-2: #2f6d47; --heat-3: #3fa066; --heat-4: #57cf86;
     --hero-bg: #1d2126; --hero-text: #f3f4f6; --hero-border: #2b3036;
     /* The same six hues re-stepped for the dark surface, not an inversion.
@@ -79,6 +82,32 @@
     --cat-other: #6b7280;
   }
 }
+:root[data-theme='dark'] {
+    --bg: #0f1113; --surface: #16191c; --text: #f3f4f6; --muted: #9aa1a8;
+    --line: #23272b; --accent: #f3f4f6; --income: #4ccf7f; --expense: #e57373;
+    --on-accent: #111111; --accent-strong: #f3f4f6;
+    --heat-0: #23272b; --heat-1: #1e3a2a; --heat-2: #2f6d47; --heat-3: #3fa066; --heat-4: #57cf86;
+    --hero-bg: #1d2126; --hero-text: #f3f4f6; --hero-border: #2b3036;
+    /* The same six hues re-stepped for the dark surface, not an inversion.
+       Validated separately: worst adjacent CVD dE 8.4, and all six clear 3:1. */
+    --cat-0: #3987e5; --cat-1: #d95926; --cat-2: #199e70;
+    --cat-3: #c98500; --cat-4: #d55181; --cat-5: #008300;
+    --cat-other: #6b7280;
+  }
+
+/* Derived from the chosen accent, in CSS rather than script so there is one
+   place the ramp is defined. color-mix in oklab is already used elsewhere in
+   this stylesheet, so this adds no new requirement. */
+:root[data-accent] {
+  --heat-1: color-mix(in oklab, var(--accent) 22%, var(--heat-0));
+  --heat-2: color-mix(in oklab, var(--accent) 46%, var(--heat-0));
+  --heat-3: color-mix(in oklab, var(--accent) 72%, var(--heat-0));
+  --heat-4: var(--accent);
+  --hero-bg: var(--accent);
+  --hero-text: var(--on-accent);
+  --hero-border: transparent;
+}
+
 * { box-sizing: border-box; }
 body {
   margin: 0; background: var(--bg); color: var(--text);
@@ -94,7 +123,7 @@ input, select, textarea { font: inherit; }
 /* Keyboard focus was invisible everywhere. One ring, drawn outside the
    element so it never shifts layout. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
 }
 /* Interactive surfaces respond to hover and to press. The press state is a

@@ -26,7 +26,7 @@
 .heat-cell--l2 { background: var(--heat-2); }
 .heat-cell--l3 { background: var(--heat-3); }
 .heat-cell--l4 { background: var(--heat-4); }
-.heat-cell--selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+.heat-cell--selected { outline: 2px solid var(--accent-strong); outline-offset: 1px; }
 .heatmap__legend { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 0.7rem; }
 .heatmap__legend .heat-cell {
   width: 12px; height: 12px; aspect-ratio: auto; flex: none; border-radius: 3px;

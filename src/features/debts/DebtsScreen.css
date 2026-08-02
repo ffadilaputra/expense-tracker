@@ -10,7 +10,7 @@
 .debt-row__name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .debt-row__remaining { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .debt-row__bar { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
-.debt-row__fill { display: block; height: 100%; background: var(--accent); }
+.debt-row__fill { display: block; height: 100%; background: var(--accent-strong); }
 .debt-row__meta {
   display: flex; justify-content: space-between; gap: var(--space-3);
   font-size: 0.75rem; color: var(--muted);

@@ -50,7 +50,7 @@
   position: fixed; right: max(1rem, env(safe-area-inset-right));
   bottom: calc(56px + env(safe-area-inset-bottom) + 1rem);
   width: 56px; height: 56px; border-radius: 50%; border: none;
-  background: var(--accent); color: var(--bg); font-size: 1.8rem; line-height: 1;
+  background: var(--accent); color: var(--on-accent); font-size: 1.8rem; line-height: 1;
   box-shadow: 0 6px 20px rgba(0,0,0,0.25); z-index: 20;
 }
 /* Aligned to the right edge of the content column. max() floors it: between

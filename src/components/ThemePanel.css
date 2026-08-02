@@ -1,0 +1,28 @@
+.theme-panel { display: flex; flex-direction: column; gap: var(--space-5); }
+.theme-panel__section { display: flex; flex-direction: column; gap: var(--space-3); }
+.theme-panel__heading {
+  margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+}
+.theme-panel__modes { display: flex; border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.theme-panel__mode {
+  flex: 1; border: none; background: var(--bg); color: var(--muted);
+  padding: 0.6rem; min-height: 44px; font-size: 0.85rem;
+}
+.theme-panel__mode.active { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.theme-panel__swatches { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.theme-panel__swatch {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid var(--line); padding: 0;
+}
+/* The ring sits outside the swatch so the colour itself is never covered. */
+.theme-panel__swatch.active { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.theme-panel__custom {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  font-size: 0.85rem; color: var(--muted);
+}
+.theme-panel__custom input {
+  width: 44px; height: 44px; padding: 0;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg);
+}
+.theme-panel__note { margin: 0; font-size: 0.75rem; color: var(--muted); line-height: 1.5; }

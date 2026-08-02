@@ -37,6 +37,37 @@
     <meta name="description" content="Track income and expenses in your own Google Sheet — works offline." />
   </head>
   <body>
+    <!-- Applies the stored theme before the bundle loads. In a React effect
+         this would flash the default palette on every cold start, which is the
+         one thing that would make theming feel broken. Kept deliberately small;
+         utils/theme.ts holds the real derivation and a test pins the two to the
+         same answers. -->
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('finance:appearance');
+          if (mode === 'light' || mode === 'dark') {
+            document.documentElement.setAttribute('data-theme', mode);
+          }
+          var accent = localStorage.getItem('finance:accent');
+          if (!accent || !/^#[0-9a-f]{6}$/i.test(accent) || accent === '#111111') return;
+          var n = parseInt(accent.slice(1), 16);
+          var ch = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(function (v) {
+            v /= 255;
+            return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+          });
+          var lum = 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
+          var white = 1.05 / (lum + 0.05);
+          var black = (lum + 0.05) / 0.05499;
+          var root = document.documentElement;
+          root.setAttribute('data-accent', '');
+          root.style.setProperty('--accent', accent);
+          root.style.setProperty('--on-accent', white >= black ? '#ffffff' : '#111111');
+        } catch (e) {
+          /* Storage blocked; the stylesheet defaults stand. */
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -186,6 +186,17 @@ export const en = {
 
   // Backup & restore
   menuLabel: 'More',
+  themeMenuItem: 'Appearance',
+  themeTitle: 'Appearance',
+  themeAppearance: 'Theme',
+  themeSystem: 'System',
+  themeLight: 'Light',
+  themeDark: 'Dark',
+  themeAccent: 'Accent colour',
+  themeCustom: 'Pick your own',
+  themeReset: 'Reset to default',
+  themeContrastNote:
+    'Text on the accent is chosen automatically for contrast, so any colour stays readable.',
   backupMenuItem: 'Backup & restore',
   backupTitle: 'Backup & restore',
   backupExportHeading: 'Backup',
@@ -421,6 +432,17 @@ export const id: Record<TranslationKey, string> = {
   failedDiscard: 'Buang',
 
   menuLabel: 'Lainnya',
+  themeMenuItem: 'Tampilan',
+  themeTitle: 'Tampilan',
+  themeAppearance: 'Tema',
+  themeSystem: 'Sistem',
+  themeLight: 'Terang',
+  themeDark: 'Gelap',
+  themeAccent: 'Warna aksen',
+  themeCustom: 'Pilih sendiri',
+  themeReset: 'Kembalikan ke bawaan',
+  themeContrastNote:
+    'Warna teks di atas aksen dipilih otomatis agar kontras, jadi warna apa pun tetap terbaca.',
   backupMenuItem: 'Cadangkan & pulihkan',
   backupTitle: 'Cadangkan & pulihkan',
   backupExportHeading: 'Cadangkan',
