@@ -259,6 +259,36 @@ allowance from 50k to 60k on an envelope 200 days old would silently grant
 Rp 2.000.000 of rollover that never existed, at exactly the moment the number
 most needs to be trustworthy.
 
+## Reset rollover
+
+Rollover means a neglected envelope quietly accumulates a large surplus, and an
+overspent one carries a deficit indefinitely. Until now the only way to clear
+either was to edit the amount and trigger a rebase, which is an obscure way to
+reach a thing users will actually want.
+
+The detail modal gets a **Reset rollover** action. It is a rebase with the
+carried balance dropped:
+
+```ts
+resetRollover(todayISO) => { openingBalance: 0, startDate: todayISO }
+```
+
+**It zeroes the accumulated carry-over, not the current period's allowance.**
+After a reset, `periodsElapsed` is 1 and `granted` is one full `amount`, so a
+daily envelope showing a Rp 340.000 surplus drops to Rp 50.000 today — the
+normal allowance, less whatever has already been spent today. Resetting to a
+literally empty pot would leave the user unable to spend until tomorrow, which
+is not what "start fresh" means to anyone.
+
+It clears a deficit by the same route, so an envelope Rp 200.000 in the hole can
+be forgiven rather than dragging its overspend forward forever.
+
+The action confirms before running — it discards a real accumulated balance and
+nothing else in the app can recover it — matching how `handleSavingDelete`
+(`AppShell.tsx:270`) gates its destructive action. It writes only
+`openingBalance` and `startDate`; the name, amount, cadence and categories are
+untouched.
+
 ## Unallocated
 
 The Summary card gains one line: `balance − Σ max(0, available)`.
@@ -325,8 +355,11 @@ it — offering a date field that a rebase then overwrites would be a plain lie.
 language ("Today", "1–7 Aug", "August"), the `granted` / `spent` breakdown, this
 period's progress, the claimed categories, and the last ten expenses drawing it
 down. That list is what turns "I am Rp 40.000 over" into "because of Friday".
-Edit and Delete live here; Delete confirms, matching `handleSavingDelete`
-(`AppShell.tsx:270`).
+
+Edit, **Reset rollover** and Delete live here. Reset and Delete both confirm,
+matching `handleSavingDelete` (`AppShell.tsx:270`). Reset is placed with Edit
+rather than beside Delete: it adjusts an envelope the user intends to keep
+using, and grouping it with deletion would suggest otherwise.
 
 All new strings get English and Indonesian entries in `translations.ts`. No new
 `Icon` glyphs are needed — cards use the envelope's own emoji.
@@ -393,6 +426,8 @@ end.
 - the first-match guard when a hand-edited sheet has two envelopes claiming one
   category
 - `rebase` returning today's date and the current available balance
+- `resetRollover` dropping a surplus *and* a deficit to zero, and leaving the
+  current period's full allowance intact rather than an empty pot
 - unallocated summing with each envelope clamped at zero
 
 **Verification before the work is called done:** `pnpm typecheck`, `pnpm test`,
