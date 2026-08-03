@@ -25,7 +25,20 @@ preferences (see "Storage"). No `Code.gs` change and no redeploy.
 
 ---
 
-# Part 1 — View Tabs
+# Part 1 — View Tabs (built, then removed)
+
+> **Superseded on 2026-08-03.** This part was implemented in full and then
+> removed at the user's request before it shipped. The category chips are once
+> again the only filter on the transactions page.
+>
+> What replaced it: past six chips the row collapses behind a `+N more` control
+> that expands inline, implemented as `chipWindow()` in `categoryChips.ts`. The
+> problem that motivated views — a filter row that becomes an unscannable
+> horizontal scroll — is addressed by hiding the tail rather than by letting the
+> user curate named groups.
+>
+> The rest of this part is kept as a record of the design and its reasoning.
+> **Part 2 shipped and is current.**
 
 ## What a view is
 
@@ -284,14 +297,13 @@ PeriodBar          control  (last / this / month / date)
 Summary            core
 AllocationsStrip   actionable
 > Insights         collapsed  (savings, trend, chart)        new
-CategoryFilter     control  (views ‖ categories ⋯)           extended
+CategoryFilter     control  (chips, +N more past six)        extended
 TransactionList
 Load more
 ```
 
 Two one-row controls and the summary before the list; everything tall sits
-behind one tap. Folding the views into the existing filter row rather than
-adding one of their own is what keeps the count at two.
+behind one tap.
 
 **The allocations strip stays outside the disclosure.** It is the only way to
 create an envelope — a deliberate decision in the allocation spec — and burying
@@ -325,9 +337,13 @@ the project has no component-testing library.
 **Composition**, in the `categoryChips.test.ts` style: applying a view then a
 chip filter yields the same set as the combined predicate, in either order.
 
-**Not unit-tested, verified by hand:** `CategoryFilter`, `ViewManager`, `ViewForm`,
-`InsightsPanel`, the `PeriodBar` date input, and `<details>` persistence. The
-implementation plan carries these as an explicit manual checklist rather than
-implying coverage that does not exist.
+**Superseded by the removal:** `views.test.ts` and `viewPrefs.test.ts` are gone
+along with the feature. What remains is `chipWindow` in `categoryChips.test.ts`
+— the limit boundary, the hidden count, the expanded case, and the rescue of a
+selected chip that falls past the cut — plus `insightsPrefs.test.ts`.
+
+**Not unit-tested, verified by hand:** `CategoryFilter`, `InsightsPanel`, the
+`PeriodBar` date input, and `<details>` persistence. `vitest.config.ts` collects
+only `*.test.ts`, so no component here has automated coverage.
 
 **Verification:** `pnpm typecheck`, `pnpm test`, `pnpm build`.
