@@ -181,10 +181,31 @@ place.
 
 ## Components
 
-**`ViewTabs.tsx` + `.css`** — horizontal tab row directly under `PeriodBar`.
-Synthesized All tab first, then the user's views, then a trailing manage button.
-Horizontally scrollable using the same pattern as `CategoryFilter.css` and the
-two strips, so a long row behaves like every other row on the page.
+**Views live in the category filter row**, not in a row of their own. One
+scrolling row carries both axes:
+
+```
+[Daily needs] [Income] ‖ [All] [Food] [Transport] │ [Salary] [⋯]
+     saved views        strong      category chips        manage
+                       divider     (today's row, unchanged)
+```
+
+Views come first, a heavier divider separates the two groups, and the manage
+button rides at the end as the only entry point for creating a view.
+
+**Views have no "All" chip of their own.** The category group already owns that
+word, and two chips labelled "All" meaning different things — no view versus no
+category — is worse than the alternative: tapping an active view chip clears it,
+exactly as tapping an active category chip already does (`CategoryFilter.tsx:43`).
+
+**Visibility becomes `chips.length >= 2 || views.length > 0`.** The existing rule
+hid the row below two chips; that would now strand saved views off screen in a
+sparse month. A period with one category and no views still gets no row.
+
+This puts a whole-screen control in the same row as one that only narrows the
+list below it. The divider and a distinct chip treatment — heavier border,
+`--accent-strong` text — carry the difference, which a second stacked row would
+have carried by position instead.
 
 **`ViewManager.tsx` + `.css`** — one self-contained modal:
 
@@ -216,9 +237,10 @@ one place the two pickers deliberately differ.
 lines. Tab order decides whether your most-used view is first or scrolled off
 screen, which is most of what "customize what they want" means.
 
-**`CategoryFilter.tsx` is unchanged.** It already derives from whatever scope it
-is handed and already hides below two chips (`CategoryFilter.tsx:17`), so a
-single-category view collapses the row with no special case.
+**`CategoryFilter.tsx` gains the view chips, the divider and the manage
+button**, plus the widened visibility rule above. Its category behaviour is
+untouched: it still derives from whatever scope it is handed, so a
+single-category view collapses that half of the row with no special case.
 
 ---
 
@@ -259,17 +281,17 @@ not currently on screen.
 
 ```
 PeriodBar          control  (last / this / month / date)
-ViewTabs           control                                   new
 Summary            core
 AllocationsStrip   actionable
 > Insights         collapsed  (savings, trend, chart)        new
-CategoryFilter     control
+CategoryFilter     control  (views ‖ categories ⋯)           extended
 TransactionList
 Load more
 ```
 
-Four one-row controls and the summary before the list; everything tall sits
-behind one tap.
+Two one-row controls and the summary before the list; everything tall sits
+behind one tap. Folding the views into the existing filter row rather than
+adding one of their own is what keeps the count at two.
 
 **The allocations strip stays outside the disclosure.** It is the only way to
 create an envelope — a deliberate decision in the allocation spec — and burying
@@ -303,7 +325,7 @@ the project has no component-testing library.
 **Composition**, in the `categoryChips.test.ts` style: applying a view then a
 chip filter yields the same set as the combined predicate, in either order.
 
-**Not unit-tested, verified by hand:** `ViewTabs`, `ViewManager`, `ViewForm`,
+**Not unit-tested, verified by hand:** `CategoryFilter`, `ViewManager`, `ViewForm`,
 `InsightsPanel`, the `PeriodBar` date input, and `<details>` persistence. The
 implementation plan carries these as an explicit manual checklist rather than
 implying coverage that does not exist.
