@@ -1,0 +1,32 @@
+.alloc-card {
+  display: flex; flex-direction: column; gap: var(--space-2); text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface);
+  color: var(--text); padding: var(--space-4); min-width: 0;
+}
+@media (hover: hover) { .alloc-card:hover { border-color: var(--muted); } }
+.alloc-card:active { transform: translateY(1px); }
+.alloc-card.is-over { border-color: var(--expense); }
+
+.alloc-card__head { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.alloc-card__icon { font-size: 1.4rem; line-height: 1; }
+.alloc-card__name {
+  font-weight: 600; font-size: 0.9rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.alloc-card__amount {
+  font-size: 0.95rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+.alloc-card.is-over .alloc-card__amount { color: var(--expense); }
+
+.alloc-card__bar {
+  display: block; height: 4px; border-radius: var(--radius-pill);
+  background: var(--line); overflow: hidden;
+}
+.alloc-card__fill { display: block; height: 100%; background: var(--accent); }
+.alloc-card.is-over .alloc-card__fill { background: var(--expense); }
+
+.alloc-card__meta {
+  font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums;
+}

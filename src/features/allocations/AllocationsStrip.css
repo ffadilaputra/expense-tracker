@@ -1,0 +1,32 @@
+/* Envelope budgets on the transactions page */
+.alloc-strip { display: flex; flex-direction: column; gap: var(--space-3); }
+.alloc-strip__head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3);
+}
+.alloc-strip__title {
+  margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+}
+.alloc-strip__scroll { overflow-x: auto; max-width: 100%; -webkit-overflow-scrolling: touch; }
+.alloc-strip__row { display: inline-flex; gap: var(--space-3); padding-bottom: 2px; }
+/* The card has no width of its own; the strip gives it one so several are
+   visible at once and the next one peeks in to show the row scrolls. */
+.alloc-strip__row .alloc-card { width: 10.5rem; flex: none; }
+
+/* Trailing "add another" affordance, sized to the cards it sits beside. */
+.alloc-strip__add {
+  flex: none; width: 3rem; align-self: stretch;
+  border: 1px dashed var(--line); border-radius: var(--radius-lg);
+  background: transparent; color: var(--muted); font-size: 1.25rem;
+}
+
+/* Shown instead of the row when there are no envelopes: this strip is the only
+   way to create one, so it cannot disappear the way SavingsStrip does. */
+.alloc-strip__cta {
+  display: block; width: 100%; padding: var(--space-3); min-height: 44px;
+  border: 1px dashed var(--line); border-radius: var(--radius-lg);
+  background: transparent; color: var(--muted); font-size: 0.8rem;
+}
+@media (hover: hover) {
+  .alloc-strip__add:hover, .alloc-strip__cta:hover { border-color: var(--muted); }
+}
