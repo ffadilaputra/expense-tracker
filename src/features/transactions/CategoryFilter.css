@@ -13,3 +13,20 @@
 .cat-filter__chip.active {
   background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600;
 }
+
+/* Saved views share the row with categories but are a different axis - they
+   rescope the whole screen. A heavier border and weight says "not just another
+   category" without inventing a second control shape. */
+.cat-filter__chip--view {
+  border-color: var(--muted); color: var(--accent-strong); font-weight: 600;
+}
+/* Wider than the expense/income divider: that one separates two groups of the
+   same thing, this one separates two different kinds of filter. */
+.cat-filter__divider--strong { width: 2px; height: 24px; background: var(--muted); opacity: 0.5; }
+
+.cat-filter__manage {
+  border: 1px dashed var(--line); background: transparent; color: var(--muted);
+  border-radius: var(--radius-pill); padding: 0.35rem 0.7rem; font-size: 0.9rem;
+  min-height: 34px; line-height: 1; white-space: nowrap;
+}
+@media (hover: hover) { .cat-filter__manage:hover { border-color: var(--muted); } }

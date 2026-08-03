@@ -1,6 +1,5 @@
 import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import PeriodBar from './PeriodBar';
-import ViewTabs from './ViewTabs';
 import InsightsPanel from './InsightsPanel';
 import Summary from './Summary';
 import SpendingTrendMessage from './SpendingTrendMessage';
@@ -185,12 +184,6 @@ export default function TransactionsScreen({
   return (
     <>
       <PeriodBar period={period} todayISO={todayISO} months={months} onChange={setPeriod} />
-      <ViewTabs
-        views={views}
-        activeId={activeViewId}
-        onSelect={selectView}
-        onManage={() => setManagerOpen(true)}
-      />
       <Summary
         balance={balance}
         income={totals.income}
@@ -225,7 +218,17 @@ export default function TransactionsScreen({
         />
       </InsightsPanel>
 
-      <CategoryFilter chips={chips} selected={category} onSelect={selectCategory} />
+      {/* One row, two axes: saved views rescope the whole screen, the category
+          chips narrow what is below them. */}
+      <CategoryFilter
+        chips={chips}
+        selected={category}
+        onSelect={selectCategory}
+        views={views}
+        activeViewId={activeViewId}
+        onSelectView={selectView}
+        onManageViews={() => setManagerOpen(true)}
+      />
       <TransactionList
         transactions={page.rows}
         todayISO={todayISO}
