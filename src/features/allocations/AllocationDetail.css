@@ -1,0 +1,47 @@
+.alloc-detail__amount {
+  margin: var(--space-1) 0 0; font-size: 1.6rem; font-weight: 700;
+  font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+}
+.alloc-detail__amount.is-over { color: var(--expense); }
+.alloc-detail__period { margin: 0 0 var(--space-4); font-size: 0.8rem; color: var(--muted); }
+
+.alloc-detail__figures { display: flex; gap: var(--space-6); margin: 0 0 var(--space-3); }
+.alloc-detail__figures dt {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+}
+.alloc-detail__figures dd {
+  margin: var(--space-1) 0 0; font-size: 0.95rem; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.alloc-detail__progress {
+  margin: 0 0 var(--space-4); font-size: 0.8rem; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.alloc-detail__chips {
+  display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: var(--space-4);
+}
+.alloc-detail__chip {
+  border: 1px solid var(--line); border-radius: var(--radius-pill);
+  padding: 0.25rem 0.7rem; font-size: 0.75rem; color: var(--muted); white-space: nowrap;
+}
+
+.alloc-detail__subtitle {
+  margin: 0 0 var(--space-2); font-size: 0.7rem; text-transform: uppercase;
+  letter-spacing: 0.08em; font-weight: 500; color: var(--muted);
+}
+.alloc-detail__empty { margin: 0 0 var(--space-4); font-size: 0.8rem; color: var(--muted); }
+
+.alloc-detail__list { list-style: none; margin: 0 0 var(--space-4); padding: 0; }
+.alloc-detail__list li {
+  display: flex; align-items: baseline; gap: var(--space-3);
+  padding: var(--space-2) 0; border-bottom: 1px solid var(--line); font-size: 0.82rem;
+}
+.alloc-detail__list-date { color: var(--muted); flex: none; font-variant-numeric: tabular-nums; }
+.alloc-detail__list-category {
+  flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.alloc-detail__list-amount { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
