@@ -23,6 +23,7 @@ export const en = {
   periodLastMonth: 'Last month',
   periodThisMonth: 'This month',
   periodPickMonth: 'Pick a month',
+  periodPickDay: 'Pick a day',
   periodOnDate: 'On {date}',
 
   // Category filter
@@ -58,6 +59,8 @@ export const en = {
   emptyPeriodFiltered: 'No transactions in this period.',
   emptyCategoryFiltered: 'No transactions in this category.',
   loadMoreRemaining: 'Load more ({count} remaining)',
+  chipShowMore: '+{count} more',
+  chipShowLess: 'Show less',
   relativeToday: 'Today',
   relativeYesterday: 'Yesterday',
   pendingTag: 'Not synced',
@@ -149,6 +152,9 @@ export const en = {
   allocationResetConfirm:
     'Reset the rollover? The accumulated balance is discarded and this envelope starts fresh today.',
   allocationDeleteConfirm: 'Delete this allocation?',
+
+  // Insights disclosure
+  insightsTitle: 'Insights',
 
   // Debts
   debtsEmpty: 'No debts yet. Tap + to add one.',
@@ -319,6 +325,7 @@ export const id: Record<TranslationKey, string> = {
   periodLastMonth: 'Bulan lalu',
   periodThisMonth: 'Bulan ini',
   periodPickMonth: 'Pilih bulan',
+  periodPickDay: 'Pilih hari',
   periodOnDate: 'Pada {date}',
 
   categoryFilterLabel: 'Saring menurut kategori',
@@ -349,6 +356,8 @@ export const id: Record<TranslationKey, string> = {
   emptyPeriodFiltered: 'Tidak ada transaksi pada periode ini.',
   emptyCategoryFiltered: 'Tidak ada transaksi pada kategori ini.',
   loadMoreRemaining: 'Muat lagi ({count} tersisa)',
+  chipShowMore: '+{count} lainnya',
+  chipShowLess: 'Tampilkan lebih sedikit',
   relativeToday: 'Hari ini',
   relativeYesterday: 'Kemarin',
   pendingTag: 'Belum tersinkron',
@@ -437,6 +446,9 @@ export const id: Record<TranslationKey, string> = {
   allocationResetConfirm:
     'Reset simpanan? Saldo yang terkumpul dihapus dan amplop ini mulai dari awal hari ini.',
   allocationDeleteConfirm: 'Hapus alokasi ini?',
+
+  // Panel wawasan
+  insightsTitle: 'Wawasan',
 
   debtsEmpty: 'Belum ada utang. Ketuk + untuk menambahkan.',
   debtAddLabel: 'Tambah utang',

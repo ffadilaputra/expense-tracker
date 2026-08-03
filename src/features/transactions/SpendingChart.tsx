@@ -5,7 +5,8 @@ import SpendingDoughnut from './SpendingDoughnut';
 import type { Transaction } from '../../types';
 import './SpendingChart.css';
 
-type View = 'activity' | 'breakdown';
+/** Named ChartMode, not View: `views.ts` in this folder owns that word now. */
+type ChartMode = 'activity' | 'breakdown';
 
 interface SpendingChartProps {
   /** Full history: the heatmap's shading scale needs the whole range. */
@@ -25,7 +26,7 @@ function SpendingChart({
   onSelectDate
 }: SpendingChartProps) {
   const { t } = useI18n();
-  const [view, setView] = useState<View>('activity');
+  const [view, setView] = useState<ChartMode>('activity');
 
   return (
     <section className="spending" aria-label={t('heatmapTitle')}>

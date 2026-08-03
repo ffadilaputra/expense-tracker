@@ -61,6 +61,27 @@ function PeriodBar({ period, todayISO, months, onChange }: PeriodBarProps) {
           </option>
         ))}
       </select>
+
+      {/* The only way to select a single day now that the heatmap sits inside
+          a collapsed panel. Typing a date also beats hunting for a cell when
+          the day is in a month that is not on screen. */}
+      <input
+        type="date"
+        className="period-bar__day"
+        value={period.kind === 'date' ? period.date : ''}
+        max={todayISO}
+        aria-label={t('periodPickDay')}
+        onChange={(e) =>
+          onChange(
+            e.target.value
+              ? { kind: 'date', date: e.target.value }
+              : // Clearing returns to the month that day sat in, not today's -
+                // the user lands where they were looking. selectedMonth already
+                // computes exactly this value for the dropdown.
+                { kind: 'month', key: selectedMonth }
+          )
+        }
+      />
     </section>
   );
 }

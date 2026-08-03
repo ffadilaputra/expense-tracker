@@ -1,10 +1,14 @@
 /* Period bar */
 .period-bar { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
-.period-bar__btn, .period-bar__month {
+.period-bar__btn, .period-bar__month, .period-bar__day {
   border: 1px solid var(--line); background: var(--surface); color: var(--muted);
   border-radius: var(--radius-pill); padding: 0.35rem 0.85rem; font-size: 0.8rem;
   min-height: 34px; display: inline-flex; align-items: center; white-space: nowrap;
 }
+/* Day selection, beside the month dropdown. Inherits the pill above; only the
+   things a date input gets wrong by default are set here. */
+.period-bar__day { font-family: inherit; }
+.period-bar__day:not(:placeholder-shown), .period-bar__day:focus { color: var(--text); }
 .period-bar__btn.active {
   background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600;
 }

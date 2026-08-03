@@ -1,0 +1,15 @@
+.insights { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.insights__summary {
+  cursor: pointer; list-style: none; padding: var(--space-3) 0;
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+  display: flex; align-items: center; gap: var(--space-2);
+}
+/* Safari renders a default triangle through ::-webkit-details-marker. */
+.insights__summary::-webkit-details-marker { display: none; }
+.insights__summary::after { content: '▸'; margin-left: auto; font-size: 0.8rem; }
+.insights[open] .insights__summary::after { content: '▾'; }
+.insights__body {
+  display: flex; flex-direction: column; gap: var(--space-5);
+  padding-bottom: var(--space-4);
+}

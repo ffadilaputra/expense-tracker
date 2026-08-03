@@ -13,3 +13,12 @@
 .cat-filter__chip.active {
   background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600;
 }
+
+/* Reveals the chips past the limit. Dashed so it reads as a control over the
+   row rather than one more category in it. */
+.cat-filter__more {
+  border: 1px dashed var(--line); background: transparent; color: var(--muted);
+  border-radius: var(--radius-pill); padding: 0.35rem 0.85rem; font-size: 0.8rem;
+  min-height: 34px; white-space: nowrap;
+}
+@media (hover: hover) { .cat-filter__more:hover { border-color: var(--muted); } }

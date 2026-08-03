@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import PeriodBar from './PeriodBar';
+import InsightsPanel from './InsightsPanel';
 import Summary from './Summary';
 import SpendingTrendMessage from './SpendingTrendMessage';
 import SpendingChart from './SpendingChart';
@@ -12,6 +13,7 @@ import {
   unallocated as computeUnallocated
 } from '../allocations/allocations';
 import { pageSlice } from './pagination';
+import { loadInsightsOpen, saveInsightsOpen } from '../../config/insightsPrefs';
 import { useI18n } from '../../i18n/context';
 import { computeSpendingTrend } from './spendingTrend';
 import { applyCategoryFilter, deriveCategories, sameChip, type CategoryChip } from './categoryChips';
@@ -56,6 +58,7 @@ export default function TransactionsScreen({
   // Reset to one page whenever the scope changes - see setPeriod and
   // selectCategory below.
   const [pages, setPages] = useState(1);
+  const [insightsOpen, setInsightsOpen] = useState(() => loadInsightsOpen());
 
   // One period drives Summary, the category chips, and the list, so there is
   // never more than one time filter in play.
@@ -108,6 +111,11 @@ export default function TransactionsScreen({
     setCategory(next);
   }, []);
 
+  const toggleInsights = useCallback((open: boolean) => {
+    setInsightsOpen(open);
+    saveInsightsOpen(open);
+  }, []);
+
   const emptyKey: TranslationKey = category
     ? 'emptyCategoryFiltered'
     : transactions.length === 0
@@ -128,8 +136,8 @@ export default function TransactionsScreen({
         debt={debts.length > 0 ? debtSummary : null}
         unallocated={unallocatedAmount}
       />
-      {/* Above savings goals: "what can I spend today" is the question the app
-          is opened to answer; a goal is something checked on. */}
+      {/* Outside the disclosure: it is the only way to create an envelope, and
+          burying a feature's sole entry point would undo that decision. */}
       <AllocationsStrip
         allocations={allocations}
         transactions={transactions}
@@ -137,19 +145,22 @@ export default function TransactionsScreen({
         onOpen={onOpenAllocation}
         onAdd={onAddAllocation}
       />
-      <SavingsStrip savings={savings} contributions={savingContributions} onOpen={onOpenSaving} />
-      <SpendingTrendMessage trend={trend} />
-      {/* The heatmap gets full history on purpose - its shading percentiles
-          need the whole range, and it is the navigator for picking a date.
-          The breakdown gets the period, since that is the question it
-          answers. */}
-      <SpendingChart
-        transactions={transactions}
-        periodTransactions={periodScoped}
-        todayISO={todayISO}
-        selectedDate={period.kind === 'date' ? period.date : null}
-        onSelectDate={(date) => setPeriod(date ? { kind: 'date', date } : currentMonth(todayISO))}
-      />
+
+      <InsightsPanel open={insightsOpen} onToggle={toggleInsights}>
+        <SavingsStrip savings={savings} contributions={savingContributions} onOpen={onOpenSaving} />
+        <SpendingTrendMessage trend={trend} />
+        {/* The heatmap keeps full history - its shading percentiles need the
+            whole range. The breakdown gets the view-scoped period, since that
+            is the question it answers. */}
+        <SpendingChart
+          transactions={transactions}
+          periodTransactions={periodScoped}
+          todayISO={todayISO}
+          selectedDate={period.kind === 'date' ? period.date : null}
+          onSelectDate={(date) => setPeriod(date ? { kind: 'date', date } : currentMonth(todayISO))}
+        />
+      </InsightsPanel>
+
       <CategoryFilter chips={chips} selected={category} onSelect={selectCategory} />
       <TransactionList
         transactions={page.rows}
