@@ -10,6 +10,7 @@ import { getStoredLocale } from '../i18n/locale';
 import { translate } from '../i18n/translate';
 import {
   normalizeAccount,
+  normalizeAllocation,
   normalizeDebt,
   normalizeInstalment,
   normalizeContribution,
@@ -19,6 +20,7 @@ import {
 } from '../utils/normalize';
 import type {
   Account,
+  Allocation,
   ApiEnvelope,
   Debt,
   DebtInstalment,
@@ -56,6 +58,7 @@ export interface SheetSnapshot {
   debtInstalments: DebtInstalment[];
   savings: Saving[];
   savingContributions: SavingContribution[];
+  allocations: Allocation[];
 }
 
 interface RawSnapshot {
@@ -66,6 +69,7 @@ interface RawSnapshot {
   debtInstalments?: unknown[];
   savings?: unknown[];
   savingContributions?: unknown[];
+  allocations?: unknown[];
 }
 
 /**
@@ -94,7 +98,8 @@ export async function fetchAll(): Promise<SheetSnapshot> {
     savings: (raw.savings ?? []).map((r) => normalizeSaving(r as Partial<Saving>)),
     savingContributions: (raw.savingContributions ?? []).map((r) =>
       normalizeContribution(r as Partial<SavingContribution>)
-    )
+    ),
+    allocations: (raw.allocations ?? []).map((r) => normalizeAllocation(r as Partial<Allocation>))
   };
 }
 
@@ -193,6 +198,32 @@ export async function deleteContribution(id: string): Promise<void> {
   await postAction<null>('deleteContribution', { id });
 }
 
+export type AllocationFormData = Pick<
+  Allocation,
+  | 'name'
+  | 'icon'
+  | 'amount'
+  | 'cadence'
+  | 'intervalDays'
+  | 'categories'
+  | 'startDate'
+  | 'openingBalance'
+> & { note?: string };
+
+export async function addAllocation(form: AllocationFormData): Promise<Allocation> {
+  return normalizeAllocation(await postAction<Allocation>('addAllocation', form));
+}
+
+export async function updateAllocation(
+  data: Partial<AllocationFormData> & { id: string }
+): Promise<Allocation> {
+  return normalizeAllocation(await postAction<Allocation>('updateAllocation', data));
+}
+
+export async function deleteAllocation(id: string): Promise<void> {
+  await postAction<null>('deleteAllocation', { id });
+}
+
 export interface ImportCounts {
   added: number;
   skipped: number;
@@ -236,7 +267,10 @@ async function postAction<T>(
     | 'updateSaving'
     | 'deleteSaving'
     | 'addContribution'
-    | 'deleteContribution',
+    | 'deleteContribution'
+    | 'addAllocation'
+    | 'updateAllocation'
+    | 'deleteAllocation',
   data: unknown
 ): Promise<T> {
   const apiUrl = requireApiUrl();

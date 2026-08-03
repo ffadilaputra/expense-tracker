@@ -99,7 +99,8 @@ describe('fetchAll', () => {
       debts: [],
       debtInstalments: [],
       savings: [],
-      savingContributions: []
+      savingContributions: [],
+      allocations: []
     });
   });
 });

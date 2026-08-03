@@ -6,6 +6,7 @@ import { purge, readFromDisk, scheduleWrite } from './storage';
 import { clearQueues } from './syncQueue';
 import type {
   Account,
+  Allocation,
   Debt,
   DebtInstalment,
   Saving,
@@ -21,6 +22,7 @@ const DEBTS_KEY = 'finance:debts';
 const INSTALMENTS_KEY = 'finance:debt-instalments';
 const SAVINGS_KEY = 'finance:savings';
 const CONTRIBUTIONS_KEY = 'finance:saving-contributions';
+const ALLOCATIONS_KEY = 'finance:allocations';
 
 let transactionsCache: Transaction[] | null = null;
 let accountsCache: Account[] | null = null;
@@ -29,6 +31,7 @@ let debtsCache: Debt[] | null = null;
 let instalmentsCache: DebtInstalment[] | null = null;
 let savingsCache: Saving[] | null = null;
 let contributionsCache: SavingContribution[] | null = null;
+let allocationsCache: Allocation[] | null = null;
 
 export function loadCachedTransactions(): Transaction[] {
   if (transactionsCache === null) transactionsCache = readFromDisk<Transaction[]>(TRANSACTIONS_KEY, []);
@@ -104,6 +107,18 @@ export function saveCachedContributions(rows: SavingContribution[]): void {
   scheduleWrite(CONTRIBUTIONS_KEY, rows);
 }
 
+export function loadCachedAllocations(): Allocation[] {
+  if (allocationsCache === null) {
+    allocationsCache = readFromDisk<Allocation[]>(ALLOCATIONS_KEY, []);
+  }
+  return allocationsCache;
+}
+
+export function saveCachedAllocations(rows: Allocation[]): void {
+  allocationsCache = rows;
+  scheduleWrite(ALLOCATIONS_KEY, rows);
+}
+
 export function makeLocalId(): string {
   return `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -121,9 +136,11 @@ export function clearCache(): void {
   instalmentsCache = [];
   savingsCache = [];
   contributionsCache = [];
+  allocationsCache = [];
   purge([
     TRANSACTIONS_KEY, ACCOUNTS_KEY, TRANSFERS_KEY,
-    DEBTS_KEY, INSTALMENTS_KEY, SAVINGS_KEY, CONTRIBUTIONS_KEY
+    DEBTS_KEY, INSTALMENTS_KEY, SAVINGS_KEY, CONTRIBUTIONS_KEY,
+    ALLOCATIONS_KEY
   ]);
   clearQueues();
 }
