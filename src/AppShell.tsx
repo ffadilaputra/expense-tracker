@@ -12,7 +12,16 @@ import Icon from './components/Icon';
 import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
 import { summarizeAllDebts } from './features/debts/debt';
-import type { Account, Debt, Saving, Transaction, TransactionFormData, Transfer } from './types';
+import { needsRebase, rebase, resetRollover } from './features/allocations/allocations';
+import type {
+  Account,
+  Allocation,
+  Debt,
+  Saving,
+  Transaction,
+  TransactionFormData,
+  Transfer
+} from './types';
 import './AppShell.css';
 import './styles/modal.css';
 
@@ -29,6 +38,8 @@ const DebtForm = lazy(() => import('./features/debts/DebtForm'));
 const DebtDetail = lazy(() => import('./features/debts/DebtDetail'));
 const SavingForm = lazy(() => import('./features/savings/SavingForm'));
 const SavingDetail = lazy(() => import('./features/savings/SavingDetail'));
+const AllocationForm = lazy(() => import('./features/allocations/AllocationForm'));
+const AllocationDetail = lazy(() => import('./features/allocations/AllocationDetail'));
 const ThemePanel = lazy(() => import('./components/ThemePanel'));
 
 interface AppShellProps {
@@ -50,6 +61,9 @@ type DebtEditor = null | 'new' | Debt;
 
 /** And for savings goals. */
 type SavingEditor = null | 'new' | Saving;
+
+/** And for allocations. */
+type AllocationEditor = null | 'new' | Allocation;
 
 export default function AppShell({ onChangeSheet }: AppShellProps) {
   const { t } = useI18n();
@@ -88,6 +102,10 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     deleteSaving,
     addContribution,
     deleteContribution,
+    allocations,
+    addAllocation,
+    updateAllocation,
+    deleteAllocation,
     retryFailedChanges,
     discardFailedChanges,
     syncNow,
@@ -107,6 +125,8 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const [openDebtId, setOpenDebtId] = useState<string | null>(null);
   const [savingEditor, setSavingEditor] = useState<SavingEditor>(null);
   const [openSavingId, setOpenSavingId] = useState<string | null>(null);
+  const [allocationEditor, setAllocationEditor] = useState<AllocationEditor>(null);
+  const [openAllocationId, setOpenAllocationId] = useState<string | null>(null);
   const today = todayISO();
 
   // Shared by the summary card and the debts screen so they cannot disagree.
@@ -193,6 +213,57 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
 
   const openDebt = debts.find((d) => d.id === openDebtId) ?? null;
   const openSaving = savings.find((x) => x.id === openSavingId) ?? null;
+  const openAllocation = allocations.find((a) => a.id === openAllocationId) ?? null;
+
+  /**
+   * Amount, cadence, interval and categories all feed the rollover computed
+   * from startDate, so changing any of them would rewrite every past period.
+   * Rebasing instead snapshots what the envelope holds now and restarts the
+   * clock - see the design doc's "Rebase on edit".
+   */
+  const handleAllocationSubmit = useCallback(
+    async (form: Parameters<typeof addAllocation>[0]) => {
+      setSubmitting(true);
+      try {
+        if (allocationEditor && allocationEditor !== 'new') {
+          const patch = needsRebase(allocationEditor, form)
+            ? { ...form, ...rebase(allocationEditor, allocations, transactions, today) }
+            : form;
+          await updateAllocation(allocationEditor.id, patch);
+        } else {
+          await addAllocation(form);
+        }
+        setAllocationEditor(null);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [allocationEditor, allocations, transactions, today, addAllocation, updateAllocation]
+  );
+
+  const handleAllocationDelete = useCallback(async () => {
+    if (!allocationEditor || allocationEditor === 'new') return;
+    if (!confirm(t('allocationDeleteConfirm'))) return;
+    setSubmitting(true);
+    try {
+      await deleteAllocation(allocationEditor.id);
+      setAllocationEditor(null);
+      setOpenAllocationId(null);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [allocationEditor, deleteAllocation, t]);
+
+  const handleAllocationReset = useCallback(async () => {
+    if (!openAllocation) return;
+    if (!confirm(t('allocationResetConfirm'))) return;
+    setSubmitting(true);
+    try {
+      await updateAllocation(openAllocation.id, resetRollover(today));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [openAllocation, updateAllocation, today, t]);
 
   const handleSavingSubmit = useCallback(
     async (form: Parameters<typeof addSaving>[0]) => {
@@ -403,10 +474,13 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
             savingContributions={savingContributions}
             debts={debts}
             debtSummary={debtSummary}
+            allocations={allocations}
             accountLabels={accountLabels}
             todayISO={today}
             onEditTransaction={(txn) => setEditor(txn)}
             onOpenSaving={(saving) => setOpenSavingId(saving.id)}
+            onOpenAllocation={(allocation) => setOpenAllocationId(allocation.id)}
+            onAddAllocation={() => setAllocationEditor('new')}
           />
         )}
       </main>
@@ -507,6 +581,63 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
                 initialValue={savingEditor === 'new' ? undefined : savingEditor}
                 onCancel={() => setSavingEditor(null)}
                 onDelete={savingEditor !== 'new' ? handleSavingDelete : undefined}
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
+      {openAllocation && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label={openAllocation.name}>
+          <div
+            className="modal__backdrop"
+            onClick={() => !submitting && setOpenAllocationId(null)}
+          />
+          <div className="modal__panel modal__panel--wide">
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <AllocationDetail
+                allocation={openAllocation}
+                allocations={allocations}
+                transactions={transactions}
+                todayISO={today}
+                submitting={submitting}
+                onEdit={() => setAllocationEditor(openAllocation)}
+                onReset={handleAllocationReset}
+                onClose={() => setOpenAllocationId(null)}
+              />
+            </Suspense>
+          </div>
+        </div>
+      )}
+
+      {allocationEditor !== null && (
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={
+            allocationEditor === 'new' ? t('allocationAddTitle') : t('allocationEditTitle')
+          }
+        >
+          <div
+            className="modal__backdrop"
+            onClick={() => !submitting && setAllocationEditor(null)}
+          />
+          <div className="modal__panel">
+            <h2 className="modal__title">
+              {allocationEditor === 'new' ? t('allocationAddTitle') : t('allocationEditTitle')}
+            </h2>
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <AllocationForm
+                key={allocationEditor === 'new' ? 'new' : allocationEditor.id}
+                allocations={allocations}
+                transactions={transactions}
+                todayISO={today}
+                onSubmit={handleAllocationSubmit}
+                submitting={submitting}
+                initialValue={allocationEditor === 'new' ? undefined : allocationEditor}
+                onCancel={() => setAllocationEditor(null)}
+                onDelete={allocationEditor !== 'new' ? handleAllocationDelete : undefined}
               />
             </Suspense>
           </div>

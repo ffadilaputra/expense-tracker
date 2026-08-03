@@ -6,6 +6,7 @@ import SpendingChart from './SpendingChart';
 import CategoryFilter from './CategoryFilter';
 import TransactionList from './TransactionList';
 import SavingsStrip from '../savings/SavingsStrip';
+import AllocationsStrip from '../allocations/AllocationsStrip';
 import { pageSlice } from './pagination';
 import { useI18n } from '../../i18n/context';
 import { computeSpendingTrend } from './spendingTrend';
@@ -13,7 +14,7 @@ import { applyCategoryFilter, deriveCategories, sameChip, type CategoryChip } fr
 import { computeBalance, computeTotals } from '../../utils/summary';
 import { availableMonths, currentMonth, filterByPeriod, type Period } from '../../utils/period';
 import type { AllDebtsSummary } from '../debts/debt';
-import type { Debt, Saving, SavingContribution, Transaction } from '../../types';
+import type { Allocation, Debt, Saving, SavingContribution, Transaction } from '../../types';
 import type { TranslationKey } from '../../i18n/translations';
 
 export interface TransactionsScreenProps {
@@ -22,10 +23,13 @@ export interface TransactionsScreenProps {
   savingContributions: SavingContribution[];
   debts: Debt[];
   debtSummary: AllDebtsSummary;
+  allocations: Allocation[];
   accountLabels: Map<string, string>;
   todayISO: string;
   onEditTransaction: (txn: Transaction) => void;
   onOpenSaving: (saving: Saving) => void;
+  onOpenAllocation: (allocation: Allocation) => void;
+  onAddAllocation: () => void;
 }
 
 export default function TransactionsScreen({
@@ -34,10 +38,13 @@ export default function TransactionsScreen({
   savingContributions,
   debts,
   debtSummary,
+  allocations,
   accountLabels,
   todayISO,
   onEditTransaction,
-  onOpenSaving
+  onOpenSaving,
+  onOpenAllocation,
+  onAddAllocation
 }: TransactionsScreenProps) {
   const { t } = useI18n();
   const [period, setPeriodState] = useState<Period>(() => currentMonth(todayISO));
@@ -107,6 +114,15 @@ export default function TransactionsScreen({
         period={period}
         todayISO={todayISO}
         debt={debts.length > 0 ? debtSummary : null}
+      />
+      {/* Above savings goals: "what can I spend today" is the question the app
+          is opened to answer; a goal is something checked on. */}
+      <AllocationsStrip
+        allocations={allocations}
+        transactions={transactions}
+        todayISO={todayISO}
+        onOpen={onOpenAllocation}
+        onAdd={onAddAllocation}
       />
       <SavingsStrip savings={savings} contributions={savingContributions} onOpen={onOpenSaving} />
       <SpendingTrendMessage trend={trend} />
