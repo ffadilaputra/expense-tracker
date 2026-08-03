@@ -3,6 +3,7 @@ import * as sheetApi from '../api/sheetApi';
 import {
   isLocalId,
   loadCachedAccounts,
+  loadCachedAllocations,
   loadCachedDebts,
   loadCachedContributions,
   loadCachedInstalments,
@@ -11,6 +12,7 @@ import {
   loadCachedTransfers,
   makeLocalId,
   saveCachedAccounts,
+  saveCachedAllocations,
   saveCachedDebts,
   saveCachedContributions,
   saveCachedInstalments,
@@ -32,6 +34,7 @@ import { getStoredLocale } from '../i18n/locale';
 import { translate } from '../i18n/translate';
 import type {
   Account,
+  Allocation,
   Debt,
   DebtInstalment,
   QueueEntry,
@@ -51,6 +54,7 @@ export interface FinanceStore {
   debtInstalments: DebtInstalment[];
   savings: Saving[];
   savingContributions: SavingContribution[];
+  allocations: Allocation[];
   /** First load with nothing cached to show yet. */
   loading: boolean;
   /** A fetch is in flight; cached data is already on screen. */
@@ -79,6 +83,9 @@ export interface FinanceStore {
   deleteSaving: (id: string) => Promise<void>;
   addContribution: (form: Omit<sheetApi.ContributionFormData, 'id'>) => Promise<void>;
   deleteContribution: (id: string) => Promise<void>;
+  addAllocation: (form: sheetApi.AllocationFormData) => Promise<Allocation>;
+  updateAllocation: (id: string, form: Partial<sheetApi.AllocationFormData>) => Promise<void>;
+  deleteAllocation: (id: string) => Promise<void>;
   retryFailedChanges: () => void;
   discardFailedChanges: () => void;
   syncNow: () => Promise<void>;
@@ -121,6 +128,7 @@ export default function useFinanceStore(): FinanceStore {
   const [savingContributions, setContributions] = useState<SavingContribution[]>(
     () => loadCachedContributions()
   );
+  const [allocations, setAllocations] = useState<Allocation[]>(() => loadCachedAllocations());
   // Offline-first: cached rows render instantly, so a full loading state is
   // only honest on a genuinely empty first load. Every other fetch is a
   // background refresh over content the user can already see and read.
@@ -148,6 +156,8 @@ export default function useFinanceStore(): FinanceStore {
   instalmentsRef.current = debtInstalments;
   savingsRef.current = savings;
   contributionsRef.current = savingContributions;
+  const allocationsRef = useRef(allocations);
+  allocationsRef.current = allocations;
 
   const persistTransactions = useCallback((next: Transaction[]) => {
     setTransactions(next);
@@ -184,6 +194,11 @@ export default function useFinanceStore(): FinanceStore {
     saveCachedContributions(next);
   }, []);
 
+  const persistAllocations = useCallback((next: Allocation[]) => {
+    setAllocations(next);
+    saveCachedAllocations(next);
+  }, []);
+
   const syncCounts = useCallback(() => {
     setPendingCount(loadQueue().length);
     setFailedCount(loadFailed().length);
@@ -200,6 +215,7 @@ export default function useFinanceStore(): FinanceStore {
     const instById = new Map(remote.debtInstalments.map((i) => [i.id, i]));
     const savById = new Map(remote.savings.map((x) => [x.id, x]));
     const contById = new Map(remote.savingContributions.map((c) => [c.id, c]));
+    const allocById = new Map(remote.allocations.map((a) => [a.id, a]));
 
     const maps: Record<string, Map<string, { id: string }>> = {
       account: accById as never,
@@ -208,6 +224,7 @@ export default function useFinanceStore(): FinanceStore {
       debtInstalment: instById as never,
       saving: savById as never,
       savingContribution: contById as never,
+      allocation: allocById as never,
       transaction: txnById as never
     };
 
@@ -238,6 +255,7 @@ export default function useFinanceStore(): FinanceStore {
     persistInstalments([...instById.values()]);
     persistSavings([...savById.values()]);
     persistContributions([...contById.values()]);
+    persistAllocations([...allocById.values()]);
   }, [
     persistTransactions,
     persistAccounts,
@@ -245,7 +263,8 @@ export default function useFinanceStore(): FinanceStore {
     persistDebts,
     persistInstalments,
     persistSavings,
-    persistContributions
+    persistContributions,
+    persistAllocations
   ]);
 
   /**
@@ -314,6 +333,25 @@ export default function useFinanceStore(): FinanceStore {
         return;
       }
 
+      if (entry.entity === 'allocation') {
+        if (entry.type === 'add') {
+          const created = await sheetApi.addAllocation(
+            entry.payload as sheetApi.AllocationFormData
+          );
+          persistAllocations(
+            allocationsRef.current.map((a) => (a.id === entry.id ? created : a))
+          );
+        } else if (entry.type === 'update') {
+          await sheetApi.updateAllocation({ id: entry.id, ...entry.payload });
+          persistAllocations(
+            allocationsRef.current.map((a) => (a.id === entry.id ? { ...a, _pending: false } : a))
+          );
+        } else if (!isLocalId(entry.id)) {
+          await sheetApi.deleteAllocation(entry.id);
+        }
+        return;
+      }
+
       if (entry.entity === 'debt') {
         if (entry.type === 'add') {
           const created = await sheetApi.addDebt(entry.payload as sheetApi.DebtFormData);
@@ -372,7 +410,8 @@ export default function useFinanceStore(): FinanceStore {
       persistDebts,
       persistInstalments,
       persistSavings,
-      persistContributions
+      persistContributions,
+      persistAllocations
     ]
   );
 
@@ -847,6 +886,61 @@ export default function useFinanceStore(): FinanceStore {
     [persistContributions, syncCounts, runSync]
   );
 
+  const addAllocation = useCallback(
+    async (form: sheetApi.AllocationFormData): Promise<Allocation> => {
+      const tempId = makeLocalId();
+      const optimistic: Allocation = {
+        ...form,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+        _pending: true
+      };
+      persistAllocations([...allocationsRef.current, optimistic]);
+      queueChange({ entity: 'allocation', type: 'add', id: tempId, payload: { ...form } });
+      return optimistic;
+    },
+    [persistAllocations, queueChange]
+  );
+
+  const updateAllocation = useCallback(
+    async (id: string, form: Partial<sheetApi.AllocationFormData>): Promise<void> => {
+      persistAllocations(
+        allocationsRef.current.map((a) => (a.id === id ? { ...a, ...form, _pending: true } : a))
+      );
+
+      const queue = loadQueue();
+      const pendingAdd = queue.find(
+        (e) => e.entity === 'allocation' && e.type === 'add' && e.id === id
+      );
+      if (pendingAdd) {
+        pendingAdd.payload = { ...pendingAdd.payload, ...form };
+        saveQueue(queue);
+        if (navigator.onLine) runSync();
+        return;
+      }
+      queueChange({ entity: 'allocation', type: 'update', id, payload: { ...form } });
+    },
+    [persistAllocations, queueChange, runSync]
+  );
+
+  /** Nothing references an envelope, so there is nothing to cascade. */
+  const deleteAllocation = useCallback(
+    async (id: string): Promise<void> => {
+      persistAllocations(allocationsRef.current.filter((a) => a.id !== id));
+
+      const queue = loadQueue();
+      const wasUnsyncedAdd = queue.some(
+        (e) => e.entity === 'allocation' && e.type === 'add' && e.id === id
+      );
+      const kept = queue.filter((e) => !(e.entity === 'allocation' && e.id === id));
+      if (!wasUnsyncedAdd) kept.push({ entity: 'allocation', type: 'delete', id, payload: null });
+      saveQueue(kept);
+      syncCounts();
+      if (navigator.onLine) runSync();
+    },
+    [persistAllocations, syncCounts, runSync]
+  );
+
   const retryFailedChanges = useCallback(() => {
     retryFailed();
     syncCounts();
@@ -904,6 +998,10 @@ export default function useFinanceStore(): FinanceStore {
     deleteSaving,
     addContribution,
     deleteContribution,
+    allocations,
+    addAllocation,
+    updateAllocation,
+    deleteAllocation,
     retryFailedChanges,
     discardFailedChanges,
     syncNow: syncAndRefresh,
