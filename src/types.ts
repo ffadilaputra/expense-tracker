@@ -110,6 +110,36 @@ export interface SavingContribution {
   _pending?: boolean;
 }
 
+/** How often an allocation refills. 'days' carries its own interval. */
+export type AllocationCadence = 'daily' | 'weekly' | 'monthly' | 'days';
+
+/**
+ * An envelope: a named pot that claims spending categories, refills on a
+ * cadence, and rolls its leftover forward. Funding is an earmark, never a
+ * movement - creating one writes no transaction, exactly like
+ * SavingContribution.
+ */
+export interface Allocation {
+  id: string;
+  name: string;
+  /** Single emoji, optional. */
+  icon?: string;
+  /** IDR granted per period. */
+  amount: number;
+  cadence: AllocationCadence;
+  /** The N in "every N days". Only meaningful when cadence is 'days'. */
+  intervalDays?: number;
+  /** Categories this envelope claims. Expenses in them draw it down. */
+  categories: string[];
+  /** Anchors period boundaries and the rollover clock. Moves on rebase. */
+  startDate: string;
+  /** Balance carried in at startDate. 0 for a new envelope; set by a rebase. */
+  openingBalance: number;
+  note?: string;
+  createdAt: string;
+  _pending?: boolean;
+}
+
 export type SyncOperation = 'add' | 'update' | 'delete';
 
 /** Which collection a queued change belongs to. */
@@ -120,7 +150,8 @@ export type SyncEntity =
   | 'debt'
   | 'debtInstalment'
   | 'saving'
-  | 'savingContribution';
+  | 'savingContribution'
+  | 'allocation';
 
 /** A queued change waiting to be pushed to Google Sheets once back online. */
 export interface QueueEntry {

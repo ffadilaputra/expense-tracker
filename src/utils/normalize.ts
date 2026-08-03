@@ -6,6 +6,8 @@
 
 import type {
   Account,
+  Allocation,
+  AllocationCadence,
   Debt,
   DebtInstalment,
   Saving,
@@ -105,6 +107,54 @@ export function normalizeContribution(raw: Partial<SavingContribution>): SavingC
     savingId: str(raw.savingId),
     amount: num(raw.amount),
     date: str(raw.date).slice(0, 10),
+    note: raw.note == null ? '' : str(raw.note),
+    createdAt: str(raw.createdAt)
+  };
+}
+
+const CADENCES: AllocationCadence[] = ['daily', 'weekly', 'monthly', 'days'];
+
+/**
+ * `categories` is one cell holding a list, so it is the field most likely to
+ * arrive malformed - and the consequence is worse than for a scalar: an
+ * unreadable cell would silently unclaim every category and inflate the
+ * envelope. A JSON array is what we write; a comma-separated string is what a
+ * user editing the sheet by hand would type. Both are accepted.
+ */
+function categoryList(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(str).map((c) => c.trim()).filter(Boolean);
+
+  const text = str(raw).trim();
+  if (text === '') return [];
+
+  if (text.startsWith('[')) {
+    try {
+      const parsed: unknown = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed.map(str).map((c) => c.trim()).filter(Boolean);
+    } catch {
+      // Not valid JSON after all - fall through to the comma split.
+    }
+  }
+
+  return text.split(',').map((c) => c.trim()).filter(Boolean);
+}
+
+export function normalizeAllocation(raw: Partial<Allocation>): Allocation {
+  const interval = num(raw.intervalDays);
+  return {
+    id: str(raw.id),
+    name: str(raw.name),
+    icon: raw.icon == null ? '' : str(raw.icon),
+    amount: num(raw.amount),
+    cadence: CADENCES.includes(raw.cadence as AllocationCadence)
+      ? (raw.cadence as AllocationCadence)
+      : 'daily',
+    // Never zero: it divides in the period arithmetic.
+    intervalDays: interval >= 1 ? Math.floor(interval) : 1,
+    categories: categoryList(raw.categories),
+    startDate: str(raw.startDate).slice(0, 10),
+    // num() keeps negatives, which a rebase on an overspent envelope produces.
+    openingBalance: num(raw.openingBalance),
     note: raw.note == null ? '' : str(raw.note),
     createdAt: str(raw.createdAt)
   };

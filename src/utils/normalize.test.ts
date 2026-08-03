@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeAccount, normalizeTransaction, normalizeTransfer } from './normalize';
+import {
+  normalizeAccount,
+  normalizeAllocation,
+  normalizeTransaction,
+  normalizeTransfer
+} from './normalize';
 
 describe('normalizeTransaction', () => {
   it('keeps the account the row is assigned to', () => {
@@ -54,5 +59,64 @@ describe('normalizeTransfer', () => {
       id: 'x1', fromAccountId: 'a', toAccountId: 'b', amount: 500000, date: '2026-08-01'
     });
     expect(transfer).toMatchObject({ fromAccountId: 'a', toAccountId: 'b', amount: 500000 });
+  });
+});
+
+describe('normalizeAllocation', () => {
+  it('coerces a well-formed row', () => {
+    const a = normalizeAllocation({
+      id: 'a1',
+      name: 'Food',
+      amount: 50000,
+      cadence: 'daily',
+      categories: ['Food'],
+      startDate: '2026-08-01',
+      openingBalance: 0,
+      createdAt: 'ts'
+    });
+    expect(a.name).toBe('Food');
+    expect(a.amount).toBe(50000);
+    expect(a.cadence).toBe('daily');
+    expect(a.categories).toEqual(['Food']);
+  });
+
+  it('falls back to daily for an unknown cadence', () => {
+    const a = normalizeAllocation({ cadence: 'fortnightly' as never });
+    expect(a.cadence).toBe('daily');
+  });
+
+  it('reads a JSON array of categories from a single cell', () => {
+    const a = normalizeAllocation({ categories: '["Food","Groceries"]' as never });
+    expect(a.categories).toEqual(['Food', 'Groceries']);
+  });
+
+  // The sheet is the user's own file and they may edit this cell by hand.
+  it('falls back to splitting on commas', () => {
+    const a = normalizeAllocation({ categories: 'Food, Groceries ' as never });
+    expect(a.categories).toEqual(['Food', 'Groceries']);
+  });
+
+  it('drops blank category entries', () => {
+    const a = normalizeAllocation({ categories: 'Food,,  ,Transport' as never });
+    expect(a.categories).toEqual(['Food', 'Transport']);
+  });
+
+  it('reads a missing categories cell as claiming nothing', () => {
+    expect(normalizeAllocation({}).categories).toEqual([]);
+  });
+
+  // A rebase on an overspent envelope writes a negative opening balance.
+  it('keeps a negative opening balance', () => {
+    expect(normalizeAllocation({ openingBalance: -200000 }).openingBalance).toBe(-200000);
+  });
+
+  it('trims a timestamp in the start date down to a calendar date', () => {
+    expect(normalizeAllocation({ startDate: '2026-08-01T00:00:00.000Z' }).startDate)
+      .toBe('2026-08-01');
+  });
+
+  it('defaults intervalDays to 1 so day arithmetic can never divide by zero', () => {
+    expect(normalizeAllocation({}).intervalDays).toBe(1);
+    expect(normalizeAllocation({ intervalDays: 0 }).intervalDays).toBe(1);
   });
 });
