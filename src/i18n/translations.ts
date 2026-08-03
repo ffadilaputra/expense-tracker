@@ -59,7 +59,8 @@ export const en = {
   emptyPeriodFiltered: 'No transactions in this period.',
   emptyCategoryFiltered: 'No transactions in this category.',
   loadMoreRemaining: 'Load more ({count} remaining)',
-  emptyViewFiltered: 'No transactions in this view.',
+  chipShowMore: '+{count} more',
+  chipShowLess: 'Show less',
   relativeToday: 'Today',
   relativeYesterday: 'Yesterday',
   pendingTag: 'Not synced',
@@ -151,26 +152,6 @@ export const en = {
   allocationResetConfirm:
     'Reset the rollover? The accumulated balance is discarded and this envelope starts fresh today.',
   allocationDeleteConfirm: 'Delete this allocation?',
-
-  // Views (saved category filters shown as tabs)
-  viewTabsLabel: 'Views',
-  viewManageLabel: 'Manage views',
-  viewManageTitle: 'Views',
-  viewAddBtn: 'New view',
-  viewAddTitle: 'New view',
-  viewEditTitle: 'Edit view',
-  viewNone: 'No views yet. Create one to filter by the categories you care about.',
-  viewFieldName: 'Name',
-  viewNamePlaceholder: 'Daily needs',
-  viewFieldType: 'Shows',
-  viewTypeAll: 'Everything',
-  viewTypeExpense: 'Expenses',
-  viewTypeIncome: 'Income',
-  viewFieldCategories: 'Categories',
-  viewAllCategoriesHint: 'None selected — this view shows every category.',
-  viewMoveUp: 'Move up',
-  viewMoveDown: 'Move down',
-  viewDeleteConfirm: 'Delete this view?',
 
   // Insights disclosure
   insightsTitle: 'Insights',
@@ -375,7 +356,8 @@ export const id: Record<TranslationKey, string> = {
   emptyPeriodFiltered: 'Tidak ada transaksi pada periode ini.',
   emptyCategoryFiltered: 'Tidak ada transaksi pada kategori ini.',
   loadMoreRemaining: 'Muat lagi ({count} tersisa)',
-  emptyViewFiltered: 'Tidak ada transaksi pada tampilan ini.',
+  chipShowMore: '+{count} lainnya',
+  chipShowLess: 'Tampilkan lebih sedikit',
   relativeToday: 'Hari ini',
   relativeYesterday: 'Kemarin',
   pendingTag: 'Belum tersinkron',
@@ -464,26 +446,6 @@ export const id: Record<TranslationKey, string> = {
   allocationResetConfirm:
     'Reset simpanan? Saldo yang terkumpul dihapus dan amplop ini mulai dari awal hari ini.',
   allocationDeleteConfirm: 'Hapus alokasi ini?',
-
-  // Tampilan (filter kategori tersimpan)
-  viewTabsLabel: 'Tampilan',
-  viewManageLabel: 'Atur tampilan',
-  viewManageTitle: 'Tampilan',
-  viewAddBtn: 'Tampilan baru',
-  viewAddTitle: 'Tampilan baru',
-  viewEditTitle: 'Ubah tampilan',
-  viewNone: 'Belum ada tampilan. Buat satu untuk menyaring kategori yang kamu pantau.',
-  viewFieldName: 'Nama',
-  viewNamePlaceholder: 'Kebutuhan harian',
-  viewFieldType: 'Menampilkan',
-  viewTypeAll: 'Semua',
-  viewTypeExpense: 'Pengeluaran',
-  viewTypeIncome: 'Pemasukan',
-  viewFieldCategories: 'Kategori',
-  viewAllCategoriesHint: 'Belum dipilih — tampilan ini memuat semua kategori.',
-  viewMoveUp: 'Naikkan',
-  viewMoveDown: 'Turunkan',
-  viewDeleteConfirm: 'Hapus tampilan ini?',
 
   // Panel wawasan
   insightsTitle: 'Wawasan',

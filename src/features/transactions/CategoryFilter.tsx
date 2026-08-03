@@ -1,84 +1,47 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { useI18n } from '../../i18n/context';
-import { sameChip, UNCATEGORIZED, type CategoryChip } from './categoryChips';
-import { ALL_VIEW_ID, type View } from './views';
+import { chipWindow, sameChip, UNCATEGORIZED, type CategoryChip } from './categoryChips';
 import './CategoryFilter.css';
 
 interface CategoryFilterProps {
   chips: CategoryChip[];
   selected: CategoryChip | null;
   onSelect: (chip: CategoryChip | null) => void;
-  /** Saved views, shown as chips ahead of the auto-derived categories. */
-  views: View[];
-  activeViewId: string;
-  onSelectView: (id: string) => void;
-  onManageViews: () => void;
 }
 
-/**
- * One row, two axes.
- *
- * A view rescopes the whole screen; a category chip narrows only what is below
- * it. They share a row because they are both "narrow what I am looking at",
- * and a divider plus distinct chip styling carries the difference.
- *
- * Views deliberately have no "All" chip of their own: the category group
- * already owns that word, and two chips labelled All meaning different things
- * is worse than the toggle behaviour used here - tapping an active view clears
- * it, exactly as tapping an active category chip already does.
- */
-function CategoryFilter({
-  chips,
-  selected,
-  onSelect,
-  views,
-  activeViewId,
-  onSelectView,
-  onManageViews
-}: CategoryFilterProps) {
+function CategoryFilter({ chips, selected, onSelect }: CategoryFilterProps) {
   const { t } = useI18n();
+  const [expanded, setExpanded] = useState(false);
 
-  // A single category is nothing to narrow down and an empty period has
-  // nothing at all - but saved views must never be stranded off screen, so
-  // their presence keeps the row alive on its own.
-  if (chips.length < 2 && views.length === 0) return null;
+  // Collapse when the chip set itself changes - a new month should not inherit
+  // the previous one's expansion. Adjusting state during render rather than in
+  // an effect, so no frame shows the stale expanded row.
+  const [seenChips, setSeenChips] = useState(chips);
+  if (seenChips !== chips) {
+    setSeenChips(chips);
+    setExpanded(false);
+  }
 
-  const firstIncomeIndex = chips.findIndex((c) => c.type === 'income');
+  // Nothing to narrow down with a single category, and nothing at all when the
+  // period is empty — either way the row would only take up space.
+  if (chips.length < 2) return null;
+
+  const { shown, hiddenCount, overflowing } = chipWindow(chips, selected, expanded);
+  const firstIncomeIndex = shown.findIndex((c) => c.type === 'income');
 
   return (
     <section className="cat-filter" aria-label={t('categoryFilterLabel')}>
       <div className="cat-filter__row" role="group" aria-label={t('categoryFilterLabel')}>
-        {views.map((view) => {
-          const isActive = view.id === activeViewId;
-          return (
-            <button
-              key={view.id}
-              type="button"
-              className={`cat-filter__chip cat-filter__chip--view ${isActive ? 'active' : ''}`}
-              aria-pressed={isActive}
-              onClick={() => onSelectView(isActive ? ALL_VIEW_ID : view.id)}
-            >
-              {view.name}
-            </button>
-          );
-        })}
+        <button
+          type="button"
+          className={`cat-filter__chip ${selected === null ? 'active' : ''}`}
+          aria-pressed={selected === null}
+          onClick={() => onSelect(null)}
+        >
+          {t('filterAllLabel')}
+        </button>
 
-        {views.length > 0 && chips.length > 0 && (
-          <span className="cat-filter__divider cat-filter__divider--strong" aria-hidden="true" />
-        )}
-
-        {chips.length > 0 && (
-          <button
-            type="button"
-            className={`cat-filter__chip ${selected === null ? 'active' : ''}`}
-            aria-pressed={selected === null}
-            onClick={() => onSelect(null)}
-          >
-            {t('filterAllLabel')}
-          </button>
-        )}
-
-        {chips.map((chip, i) => {
+        {shown.map((chip, i) => {
           const isSelected = sameChip(chip, selected);
           const label = chip.category === UNCATEGORIZED ? t('uncategorized') : chip.category;
           return (
@@ -96,17 +59,16 @@ function CategoryFilter({
           );
         })}
 
-        {/* The only entry point for creating a view, so it rides along with the
-            row rather than living in a menu where nobody would find it. */}
-        <button
-          type="button"
-          className="cat-filter__manage"
-          onClick={onManageViews}
-          aria-label={t('viewManageLabel')}
-          title={t('viewManageLabel')}
-        >
-          ⋯
-        </button>
+        {overflowing && (
+          <button
+            type="button"
+            className="cat-filter__more"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((open) => !open)}
+          >
+            {expanded ? t('chipShowLess') : t('chipShowMore', { count: hiddenCount })}
+          </button>
+        )}
       </div>
     </section>
   );
