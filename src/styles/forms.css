@@ -45,3 +45,23 @@
 .btn--secondary { background: var(--bg); }
 .btn--danger { color: var(--expense); border-color: var(--expense); margin-left: auto; }
 .btn:disabled { opacity: 0.5; }
+
+/* Category picker inside the allocation form. Its own chip rather than
+   .cat-filter__chip: that one is scoped to the filter row and carries
+   income/expense edge colouring this picker has no use for. */
+.alloc-form__categories { border: none; padding: 0; margin: 0; min-width: 0; }
+.alloc-form__categories legend {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted); padding: 0 0 var(--space-2);
+}
+.alloc-form__chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.alloc-form__chip {
+  border: 1px solid var(--line); background: var(--surface); color: var(--text);
+  border-radius: var(--radius-pill); padding: 0.35rem 0.85rem; font-size: 0.8rem;
+  min-height: 34px; white-space: nowrap;
+}
+.alloc-form__chip.active {
+  background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600;
+}
+.alloc-form__chip:disabled { opacity: 0.4; }
+.alloc-form__hint { margin: var(--space-2) 0 0; font-size: 0.75rem; color: var(--muted); }
