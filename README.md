@@ -51,7 +51,7 @@ Your Google Sheet must have a tab named **Transactions** with the following colu
 | `createdAt`| ISO timestamp (auto-generated)  |
 | `accountId`| Id from the Accounts tab (optional; blank = unassigned) |
 
-Six more tabs are created automatically the first time you need them:
+Seven more tabs are created automatically the first time you need them:
 
 **Accounts** — `id`, `name`, `ownerName`, `icon`, `createdAt`
 **Transfers** — `id`, `fromAccountId`, `toAccountId`, `amount`, `date`, `note`, `createdAt`
@@ -59,9 +59,17 @@ Six more tabs are created automatically the first time you need them:
 **DebtInstalments** — `id`, `debtId`, `number`, `amount`, `dueDate`, `paidDate`, `transactionId`, `createdAt`
 **Savings** — `id`, `name`, `icon`, `targetAmount`, `note`, `createdAt`
 **SavingContributions** — `id`, `savingId`, `amount`, `date`, `note`, `createdAt`
+**Allocations** — `id`, `name`, `icon`, `amount`, `cadence`, `intervalDays`, `categories`, `startDate`, `openingBalance`, `note`, `createdAt`
 
 `DebtInstalments` is sparse: a row appears only for an instalment you have edited or paid, so a
 24-month debt starts with no rows at all. The rest of the schedule is computed from the header.
+
+`Allocations` holds envelope budgets. `cadence` is one of `daily`, `weekly`, `monthly` or `days`;
+`intervalDays` applies only to `days`. `categories` is a JSON array of the categories the envelope
+claims, though a comma-separated list is read too if you edit the cell by hand. `startDate` and
+`openingBalance` together carry the rollover: editing an envelope's amount, cadence or categories
+rebases them to today rather than retroactively rewriting past periods, so those two cells change on
+their own and are not worth editing directly.
 
 The Apps Script handles all of this automatically—just create the sheet and deploy the code. It also
 adds any column a newer version needs, so upgrading is a matter of pasting in the new `Code.gs` and
@@ -122,6 +130,7 @@ Outputs to `dist/`. The app is a React 18 + TypeScript + Vite PWA (Progressive W
 - **Responsive**: works on phones, tablets, and desktop browsers
 - **Installable**: add to your home screen as a PWA
 - **Spending heatmap**: visual calendar view of spending by day
+- **Envelope budgets**: daily, weekly, monthly or custom allocations per category, with rollover
 - **Bilingual**: English and Bahasa Indonesia
 - **Zero tracking**: no analytics, no third-party scripts
 
