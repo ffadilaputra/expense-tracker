@@ -572,3 +572,96 @@ describe('savings', () => {
     expect(post(api, 'updateSaving', { id: 'nope', name: 'x' }).success).toBe(false);
   });
 });
+
+describe('allocations', () => {
+  const ALLOCATION_HEADERS = [
+    'id', 'name', 'icon', 'amount', 'cadence', 'intervalDays',
+    'categories', 'startDate', 'openingBalance', 'note', 'createdAt'
+  ];
+
+  const base = {
+    name: 'Food',
+    icon: '🍜',
+    amount: 50000,
+    cadence: 'daily',
+    intervalDays: 1,
+    categories: ['Food', 'Groceries'],
+    startDate: '2026-08-01',
+    openingBalance: 0,
+    note: ''
+  };
+
+  it('creates the tab with headers on first write', () => {
+    const { api, sheets } = loadCode();
+    post(api, 'addAllocation', base);
+    expect(sheets.get('Allocations')!.rows[0]).toEqual(ALLOCATION_HEADERS);
+  });
+
+  it('returns the created row', () => {
+    const { api } = loadCode();
+    const res = post(api, 'addAllocation', base);
+    expect(res.success).toBe(true);
+    expect(res.data.name).toBe('Food');
+    expect(res.data.amount).toBe(50000);
+    expect(res.data.categories).toEqual(['Food', 'Groceries']);
+  });
+
+  it('lists allocations', () => {
+    const { api } = loadCode();
+    post(api, 'addAllocation', base);
+    const listed = get(api, 'list');
+    expect(listed.data.allocations).toHaveLength(1);
+    expect(listed.data.allocations[0].categories).toEqual(['Food', 'Groceries']);
+  });
+
+  it('does not create the tab merely by listing', () => {
+    const { api, sheets } = loadCode();
+    get(api, 'list');
+    expect(sheets.has('Allocations')).toBe(false);
+  });
+
+  it('updates only the fields sent', () => {
+    const { api } = loadCode();
+    const created = post(api, 'addAllocation', base);
+    const res = post(api, 'updateAllocation', { id: created.data.id, amount: 60000 });
+    expect(res.success).toBe(true);
+    expect(res.data.amount).toBe(60000);
+    expect(res.data.name).toBe('Food');
+    expect(res.data.categories).toEqual(['Food', 'Groceries']);
+  });
+
+  // A rebase on an overspent envelope writes a negative opening balance.
+  it('stores a negative opening balance', () => {
+    const { api } = loadCode();
+    const created = post(api, 'addAllocation', base);
+    const res = post(api, 'updateAllocation', {
+      id: created.data.id,
+      openingBalance: -200000,
+      startDate: '2026-08-03'
+    });
+    expect(res.data.openingBalance).toBe(-200000);
+    expect(res.data.startDate).toBe('2026-08-03');
+  });
+
+  it('reads a comma-separated categories cell written by hand', () => {
+    const { api, sheets } = loadCode();
+    post(api, 'addAllocation', base);
+    const sheet = sheets.get('Allocations')!;
+    sheet.rows[1][6] = 'Food, Transport';
+    expect(get(api, 'list').data.allocations[0].categories).toEqual(['Food', 'Transport']);
+  });
+
+  it('deletes an allocation', () => {
+    const { api } = loadCode();
+    const created = post(api, 'addAllocation', base);
+    expect(post(api, 'deleteAllocation', { id: created.data.id }).success).toBe(true);
+    expect(get(api, 'list').data.allocations).toEqual([]);
+  });
+
+  it('reports a missing allocation rather than throwing', () => {
+    const { api } = loadCode();
+    post(api, 'addAllocation', base);
+    expect(post(api, 'updateAllocation', { id: 'nope' }).success).toBe(false);
+    expect(post(api, 'deleteAllocation', { id: 'nope' }).success).toBe(false);
+  });
+});

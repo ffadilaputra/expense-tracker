@@ -35,6 +35,13 @@ var SAVING_HEADERS = ['id', 'name', 'icon', 'targetAmount', 'note', 'createdAt']
 // Not sparse, unlike DebtInstalments: every contribution is a distinct event.
 var CONTRIBUTIONS_SHEET = 'SavingContributions';
 var CONTRIBUTION_HEADERS = ['id', 'savingId', 'amount', 'date', 'note', 'createdAt'];
+// Envelope budgets. One row per envelope forever: the refill is a rule, so no
+// per-period funding rows are ever written.
+var ALLOCATIONS_SHEET = 'Allocations';
+var ALLOCATION_HEADERS = [
+  'id', 'name', 'icon', 'amount', 'cadence', 'intervalDays',
+  'categories', 'startDate', 'openingBalance', 'note', 'createdAt'
+];
 
 function getSheetFor(name, headers) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -179,7 +186,8 @@ function listAll() {
     debts: readTab(DEBTS_SHEET, DEBT_HEADERS, debtRowToObject),
     debtInstalments: readTab(INSTALMENTS_SHEET, INSTALMENT_HEADERS, instalmentRowToObject),
     savings: readTab(SAVINGS_SHEET, SAVING_HEADERS, savingRowToObject),
-    savingContributions: readTab(CONTRIBUTIONS_SHEET, CONTRIBUTION_HEADERS, contributionRowToObject)
+    savingContributions: readTab(CONTRIBUTIONS_SHEET, CONTRIBUTION_HEADERS, contributionRowToObject),
+    allocations: readTab(ALLOCATIONS_SHEET, ALLOCATION_HEADERS, allocationRowToObject)
   };
 }
 
@@ -615,6 +623,113 @@ function deleteContribution(id) {
   return { success: true };
 }
 
+/**
+ * `categories` is one cell holding a list. We write a JSON array; a user
+ * editing the sheet by hand would type "Food, Groceries". Both are read, so a
+ * hand-edited cell cannot silently unclaim every category.
+ */
+function parseCategoriesCell(cell) {
+  var text = String(cell == null ? '' : cell).replace(/^\s+|\s+$/g, '');
+  if (text === '') return [];
+
+  if (text.charAt(0) === '[') {
+    try {
+      var parsed = JSON.parse(text);
+      if (Object.prototype.toString.call(parsed) === '[object Array]') {
+        return trimmedList(parsed);
+      }
+    } catch (err) {
+      // Not valid JSON after all - fall through to the comma split.
+    }
+  }
+
+  return trimmedList(text.split(','));
+}
+
+function trimmedList(items) {
+  var out = [];
+  for (var i = 0; i < items.length; i++) {
+    var value = String(items[i]).replace(/^\s+|\s+$/g, '');
+    if (value !== '') out.push(value);
+  }
+  return out;
+}
+
+function categoriesToCell(value) {
+  if (Object.prototype.toString.call(value) === '[object Array]') {
+    return JSON.stringify(trimmedList(value));
+  }
+  return JSON.stringify(parseCategoriesCell(value));
+}
+
+function allocationRowToObject(row) {
+  var interval = normAmount(row[5]);
+  return {
+    id: String(row[0]),
+    name: String(row[1]),
+    icon: String(row[2] == null ? '' : row[2]),
+    amount: normAmount(row[3]),
+    cadence: String(row[4] || 'daily'),
+    intervalDays: interval >= 1 ? interval : 1,
+    categories: parseCategoriesCell(row[6]),
+    startDate: normDate(row[7]),
+    // normAmount keeps negatives: a rebase on an overspent envelope writes one.
+    openingBalance: normAmount(row[8]),
+    note: String(row[9] == null ? '' : row[9]),
+    createdAt: String(row[10] == null ? '' : row[10])
+  };
+}
+
+function addAllocation(data) {
+  var sheet = getSheetFor(ALLOCATIONS_SHEET, ALLOCATION_HEADERS);
+  var row = [
+    Utilities.getUuid(),
+    data.name || '',
+    data.icon || '',
+    normAmount(data.amount),
+    data.cadence || 'daily',
+    normAmount(data.intervalDays) >= 1 ? normAmount(data.intervalDays) : 1,
+    categoriesToCell(data.categories),
+    normDate(data.startDate || new Date()),
+    normAmount(data.openingBalance),
+    data.note || '',
+    new Date().toISOString()
+  ];
+  sheet.appendRow(row);
+  return { success: true, data: allocationRowToObject(row) };
+}
+
+function updateAllocation(data) {
+  var sheet = getSheetFor(ALLOCATIONS_SHEET, ALLOCATION_HEADERS);
+  var rowIndex = findRowIndexById(sheet, data.id);
+  if (rowIndex === -1) return { success: false, error: 'Allocation not found' };
+  var existing = sheet.getRange(rowIndex, 1, 1, ALLOCATION_HEADERS.length).getValues()[0];
+  var updated = [
+    existing[0],
+    data.name != null ? data.name : existing[1],
+    data.icon != null ? data.icon : existing[2],
+    data.amount != null ? normAmount(data.amount) : existing[3],
+    data.cadence != null ? data.cadence : existing[4],
+    data.intervalDays != null ? normAmount(data.intervalDays) : existing[5],
+    data.categories != null ? categoriesToCell(data.categories) : existing[6],
+    data.startDate != null ? normDate(data.startDate) : existing[7],
+    data.openingBalance != null ? normAmount(data.openingBalance) : existing[8],
+    data.note != null ? data.note : existing[9],
+    existing[10]
+  ];
+  sheet.getRange(rowIndex, 1, 1, ALLOCATION_HEADERS.length).setValues([updated]);
+  return { success: true, data: allocationRowToObject(updated) };
+}
+
+/** Nothing references an envelope, so deleting one orphans no rows. */
+function deleteAllocation(id) {
+  var sheet = getSheetFor(ALLOCATIONS_SHEET, ALLOCATION_HEADERS);
+  var rowIndex = findRowIndexById(sheet, id);
+  if (rowIndex === -1) return { success: false, error: 'Allocation not found' };
+  sheet.deleteRow(rowIndex);
+  return { success: true };
+}
+
 function doGet(e) {
   try {
     var params = (e && e.parameter) || {};
@@ -657,6 +772,9 @@ function doPost(e) {
     if (action === 'deleteSaving') return jsonResponse(deleteSaving(data.id));
     if (action === 'addContribution') return jsonResponse(addContribution(data));
     if (action === 'deleteContribution') return jsonResponse(deleteContribution(data.id));
+    if (action === 'addAllocation') return jsonResponse(addAllocation(data));
+    if (action === 'updateAllocation') return jsonResponse(updateAllocation(data));
+    if (action === 'deleteAllocation') return jsonResponse(deleteAllocation(data.id));
     return jsonResponse({ success: false, error: 'Unknown POST action: ' + action });
   } catch (err) {
     return jsonResponse({ success: false, error: 'Script error: ' + (err && err.message ? err.message : err) });
