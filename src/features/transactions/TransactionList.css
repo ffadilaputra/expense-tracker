@@ -2,3 +2,13 @@
 .txn-list { display: flex; flex-direction: column; gap: var(--space-5); }
 .txn-group { display: flex; flex-direction: column; gap: var(--space-1); }
 .txn-group__heading { margin: 0 0 var(--space-1); }
+
+/* Full width so it reads as the end of the list rather than an action on the
+   last card above it. */
+.txn-list__more {
+  display: block; width: 100%; margin-top: var(--space-2);
+  padding: var(--space-3); min-height: 44px;
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+  background: var(--surface); color: var(--accent-strong);
+  font-size: 0.9rem; font-weight: 600;
+}

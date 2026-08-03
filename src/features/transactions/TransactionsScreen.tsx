@@ -6,6 +6,8 @@ import SpendingChart from './SpendingChart';
 import CategoryFilter from './CategoryFilter';
 import TransactionList from './TransactionList';
 import SavingsStrip from '../savings/SavingsStrip';
+import { pageSlice } from './pagination';
+import { useI18n } from '../../i18n/context';
 import { computeSpendingTrend } from './spendingTrend';
 import { applyCategoryFilter, deriveCategories, sameChip, type CategoryChip } from './categoryChips';
 import { computeBalance, computeTotals } from '../../utils/summary';
@@ -37,14 +39,19 @@ export default function TransactionsScreen({
   onEditTransaction,
   onOpenSaving
 }: TransactionsScreenProps) {
+  const { t } = useI18n();
   const [period, setPeriodState] = useState<Period>(() => currentMonth(todayISO));
   const [category, setCategory] = useState<CategoryChip | null>(null);
+  // Reset to one page whenever the scope changes - see setPeriod and
+  // selectCategory below.
+  const [pages, setPages] = useState(1);
 
   // One period drives Summary, the category chips, and the list, so there is
   // never more than one time filter in play.
   const periodScoped = useMemo(() => filterByPeriod(transactions, period), [transactions, period]);
   const chips = useMemo(() => deriveCategories(periodScoped), [periodScoped]);
   const visible = useMemo(() => applyCategoryFilter(periodScoped, category), [periodScoped, category]);
+  const page = useMemo(() => pageSlice(visible, pages), [visible, pages]);
   const totals = useMemo(() => computeTotals(periodScoped), [periodScoped]);
   const balance = useMemo(() => computeBalance(transactions), [transactions]);
 
@@ -62,6 +69,7 @@ export default function TransactionsScreen({
    */
   const setPeriod = useCallback(
     (next: Period) => {
+      setPages(1);
       setPeriodState(next);
       setCategory((current) => {
         if (!current) return null;
@@ -71,6 +79,15 @@ export default function TransactionsScreen({
     },
     [transactions]
   );
+
+  /**
+   * Paired with setPeriod: both reset paging, synchronously rather than in an
+   * effect, so the list never renders page 3 of a filter that just changed.
+   */
+  const selectCategory = useCallback((next: CategoryChip | null) => {
+    setPages(1);
+    setCategory(next);
+  }, []);
 
   const emptyKey: TranslationKey = category
     ? 'emptyCategoryFiltered'
@@ -104,14 +121,23 @@ export default function TransactionsScreen({
         selectedDate={period.kind === 'date' ? period.date : null}
         onSelectDate={(date) => setPeriod(date ? { kind: 'date', date } : currentMonth(todayISO))}
       />
-      <CategoryFilter chips={chips} selected={category} onSelect={setCategory} />
+      <CategoryFilter chips={chips} selected={category} onSelect={selectCategory} />
       <TransactionList
-        transactions={visible}
+        transactions={page.rows}
         todayISO={todayISO}
         emptyKey={emptyKey}
         accountLabels={accountLabels}
         onEdit={onEditTransaction}
       />
+      {page.hasMore && (
+        <button
+          type="button"
+          className="txn-list__more"
+          onClick={() => setPages((n) => n + 1)}
+        >
+          {t('loadMoreRemaining', { count: page.remaining })}
+        </button>
+      )}
     </>
   );
 }
