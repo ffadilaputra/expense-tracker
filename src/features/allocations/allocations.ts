@@ -1,4 +1,4 @@
-import type { Allocation } from '../../types';
+import type { Allocation, Transaction } from '../../types';
 
 /** One refill window, both ends inclusive ISO dates. */
 export interface AllocationPeriod {
@@ -95,4 +95,171 @@ export function currentPeriod(allocation: Allocation, todayISO: string): Allocat
   const span = intervalDays(allocation);
   const start = addDays(allocation.startDate, index * span);
   return { start, end: addDays(start, span - 1) };
+}
+
+export interface AllocationSummary {
+  periodStart: string;
+  /** Inclusive. */
+  periodEnd: string;
+  periodsElapsed: number;
+  granted: number;
+  /** Since startDate, up to and including today. */
+  spent: number;
+  /** granted - spent. Negative when overdrawn. */
+  available: number;
+  spentThisPeriod: number;
+  /** amount - spentThisPeriod. Negative when this period is overspent. */
+  periodRemaining: number;
+  isOverdrawn: boolean;
+}
+
+export interface AllocationRow {
+  allocation: Allocation;
+  summary: AllocationSummary;
+}
+
+/** The subset of a form that can invalidate an envelope's accumulated history. */
+export type AllocationFormShape = Pick<
+  Allocation,
+  'amount' | 'cadence' | 'intervalDays' | 'categories'
+>;
+
+/**
+ * Which categories each envelope actually owns.
+ *
+ * One category belongs to one envelope. The form prevents a conflict, but the
+ * sheet is the user's own file and can be edited into one, so the first
+ * claimant wins here too - by createdAt, then id, so the answer does not
+ * depend on the order rows came back from the sheet.
+ */
+export function resolveClaims(allocations: Allocation[]): Map<string, string[]> {
+  const ordered = [...allocations].sort((a, b) => {
+    if (a.createdAt !== b.createdAt) return a.createdAt.localeCompare(b.createdAt);
+    return a.id.localeCompare(b.id);
+  });
+
+  const owner = new Map<string, string>();
+  const owned = new Map<string, string[]>();
+
+  for (const allocation of ordered) {
+    const mine: string[] = [];
+    for (const raw of allocation.categories) {
+      const category = raw.trim();
+      if (category === '' || owner.has(category)) continue;
+      owner.set(category, allocation.id);
+      mine.push(category);
+    }
+    owned.set(allocation.id, mine);
+  }
+
+  return owned;
+}
+
+function summarize(
+  allocation: Allocation,
+  owned: string[],
+  transactions: Transaction[],
+  todayISO: string
+): AllocationSummary {
+  const { start: periodStart, end: periodEnd } = currentPeriod(allocation, todayISO);
+  const elapsed = periodsElapsed(allocation, todayISO);
+  const claimed = new Set(owned);
+
+  // The current period may run past today; only count as far as today so
+  // "spent this period" cannot include a future-dated row.
+  const periodCap = periodEnd < todayISO ? periodEnd : todayISO;
+
+  let spent = 0;
+  let spentThisPeriod = 0;
+
+  for (const t of transactions) {
+    // Income is ignored on purpose: an envelope is a spending allowance, and
+    // netting a refund into it would move "left today" for a reason the user
+    // did not act on. Transfers are a separate collection and never reach here.
+    if (t.type !== 'expense') continue;
+    if (!claimed.has(t.category.trim())) continue;
+    if (t.date < allocation.startDate || t.date > todayISO) continue;
+
+    spent += t.amount;
+    if (t.date >= periodStart && t.date <= periodCap) spentThisPeriod += t.amount;
+  }
+
+  const granted = allocation.openingBalance + elapsed * allocation.amount;
+  const available = granted - spent;
+
+  return {
+    periodStart,
+    periodEnd,
+    periodsElapsed: elapsed,
+    granted,
+    spent,
+    available,
+    spentThisPeriod,
+    periodRemaining: allocation.amount - spentThisPeriod,
+    isOverdrawn: available < 0
+  };
+}
+
+/**
+ * One pass over every envelope, so the strip, the detail modal and the
+ * unallocated line are always reading the same numbers.
+ */
+export function summarizeAllocations(
+  allocations: Allocation[],
+  transactions: Transaction[],
+  todayISO: string
+): AllocationRow[] {
+  const owned = resolveClaims(allocations);
+  return allocations.map((allocation) => ({
+    allocation,
+    summary: summarize(allocation, owned.get(allocation.id) ?? [], transactions, todayISO)
+  }));
+}
+
+/** What the envelopes are still holding. Overdrawn ones hold nothing. */
+export function totalAllocated(rows: AllocationRow[]): number {
+  return rows.reduce((sum, r) => sum + Math.max(0, r.summary.available), 0);
+}
+
+export function unallocated(balance: number, rows: AllocationRow[]): number {
+  return balance - totalAllocated(rows);
+}
+
+/**
+ * Because `available` is computed from `startDate`, changing the rule would
+ * rewrite every past period. Rebasing instead snapshots what the envelope
+ * holds right now and restarts the clock from today, so nothing is invented:
+ * raising a daily allowance from 50k to 60k on a 200-day-old envelope would
+ * otherwise silently grant Rp 2.000.000 of rollover that never existed.
+ */
+export function rebase(
+  allocation: Allocation,
+  allocations: Allocation[],
+  transactions: Transaction[],
+  todayISO: string
+): { openingBalance: number; startDate: string } {
+  const owned = resolveClaims(allocations).get(allocation.id) ?? [];
+  const summary = summarize(allocation, owned, transactions, todayISO);
+  return { openingBalance: summary.available, startDate: todayISO };
+}
+
+/**
+ * Clears the accumulated carry-over - a surplus on a neglected envelope, or a
+ * deficit on an overspent one - without touching the current period's
+ * allowance. After a reset one full amount is granted, because a reset that
+ * left nothing to spend until tomorrow is not what "start fresh" means.
+ */
+export function resetRollover(todayISO: string): { openingBalance: number; startDate: string } {
+  return { openingBalance: 0, startDate: todayISO };
+}
+
+/** Whether an edit invalidates the accumulated history and must rebase. */
+export function needsRebase(before: Allocation, after: AllocationFormShape): boolean {
+  if (before.amount !== after.amount) return true;
+  if (before.cadence !== after.cadence) return true;
+  if ((before.intervalDays ?? 1) !== (after.intervalDays ?? 1)) return true;
+
+  const sortedBefore = [...before.categories].sort().join(' ');
+  const sortedAfter = [...after.categories].sort().join(' ');
+  return sortedBefore !== sortedAfter;
 }
