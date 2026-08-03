@@ -4,30 +4,14 @@ import usePullToRefresh from './hooks/usePullToRefresh';
 import PullToRefreshIndicator from './components/PullToRefreshIndicator';
 import SyncStatus from './components/SyncStatus';
 import LanguageSwitch from './components/LanguageSwitch';
-import PeriodBar from './features/transactions/PeriodBar';
-import Summary from './features/transactions/Summary';
-import SpendingTrendMessage from './features/transactions/SpendingTrendMessage';
-import SpendingChart from './features/transactions/SpendingChart';
-import CategoryFilter from './features/transactions/CategoryFilter';
-import TransactionList from './features/transactions/TransactionList';
+import TransactionsScreen from './features/transactions/TransactionsScreen';
 import BackupPanel from './features/backup/BackupPanel';
 import BottomNav, { type Tab } from './components/BottomNav';
-import SavingsStrip from './features/savings/SavingsStrip';
 import LoadingSkeleton from './components/LoadingSkeleton';
 import Icon from './components/Icon';
 import { useToast } from './components/Toast';
 import { useI18n } from './i18n/context';
-import { computeBalance, computeTotals } from './utils/summary';
-import { availableMonths, currentMonth, filterByPeriod, type Period } from './utils/period';
-import { computeSpendingTrend } from './features/transactions/spendingTrend';
 import { summarizeAllDebts } from './features/debts/debt';
-import {
-  applyCategoryFilter,
-  deriveCategories,
-  sameChip,
-  type CategoryChip
-} from './features/transactions/categoryChips';
-import type { TranslationKey } from './i18n/translations';
 import type { Account, Debt, Saving, Transaction, TransactionFormData, Transfer } from './types';
 import './AppShell.css';
 import './styles/modal.css';
@@ -124,22 +108,6 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
   const [savingEditor, setSavingEditor] = useState<SavingEditor>(null);
   const [openSavingId, setOpenSavingId] = useState<string | null>(null);
   const today = todayISO();
-  const [period, setPeriodState] = useState<Period>(() => currentMonth(today));
-  const [category, setCategory] = useState<CategoryChip | null>(null);
-
-  // One period drives Summary, the category chips, and the list, so there is
-  // never more than one time filter in play.
-  const periodScoped = useMemo(() => filterByPeriod(transactions, period), [transactions, period]);
-  const chips = useMemo(() => deriveCategories(periodScoped), [periodScoped]);
-  const visible = useMemo(() => applyCategoryFilter(periodScoped, category), [periodScoped, category]);
-  const totals = useMemo(() => computeTotals(periodScoped), [periodScoped]);
-  const balance = useMemo(() => computeBalance(transactions), [transactions]);
-
-  // Deliberately not period-scoped: this always compares this calendar month
-  // with last, so it means the same thing wherever the user has navigated.
-  const trend = useMemo(() => computeSpendingTrend(transactions, today), [transactions, today]);
-
-  const months = useMemo(() => availableMonths(transactions, today), [transactions, today]);
 
   // Shared by the summary card and the debts screen so they cannot disagree.
   const debtSummary = useMemo(
@@ -152,33 +120,6 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
     () => new Map(accounts.map((a) => [a.id, a.icon ? `${a.icon} ${a.name}` : a.name])),
     [accounts]
   );
-
-  /**
-   * Every period change goes through here: the new scope may no longer contain
-   * the selected category, which would leave the list filtered by a chip that
-   * is not on screen. Reconciling in one place keeps the period bar, the
-   * heatmap, and the date input consistent, and does it synchronously rather
-   * than in an effect that would render one frame of the broken state.
-   */
-  const setPeriod = useCallback(
-    (next: Period) => {
-      setPeriodState(next);
-      setCategory((current) => {
-        if (!current) return null;
-        const stillThere = deriveCategories(filterByPeriod(transactions, next));
-        return stillThere.some((c) => sameChip(c, current)) ? current : null;
-      });
-    },
-    [transactions]
-  );
-
-  const emptyKey: TranslationKey = category
-    ? 'emptyCategoryFiltered'
-    : transactions.length === 0
-      ? 'emptyTransactions'
-      : period.kind === 'date'
-        ? 'emptyDayFiltered'
-        : 'emptyPeriodFiltered';
 
   // usePullToRefresh attaches its own window touch listeners internally (see
   // src/hooks/usePullToRefresh.ts) and just returns the current gesture
@@ -456,42 +397,17 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
         ) : tab !== 'transactions' ? (
           <Suspense fallback={<LoadingSkeleton />}>{renderTabScreen()}</Suspense>
         ) : (
-          <>
-        <PeriodBar period={period} todayISO={today} months={months} onChange={setPeriod} />
-        <Summary
-          balance={balance}
-          income={totals.income}
-          expense={totals.expense}
-          period={period}
-          todayISO={today}
-          debt={debts.length > 0 ? debtSummary : null}
-        />
-        <SavingsStrip
-          savings={savings}
-          contributions={savingContributions}
-          onOpen={(saving) => setOpenSavingId(saving.id)}
-        />
-        <SpendingTrendMessage trend={trend} />
-        {/* The heatmap gets full history on purpose - its shading percentiles
-            need the whole range, and it is the navigator for picking a date.
-            The breakdown gets the period, since that is the question it
-            answers. */}
-        <SpendingChart
-          transactions={transactions}
-          periodTransactions={periodScoped}
-          todayISO={today}
-          selectedDate={period.kind === 'date' ? period.date : null}
-          onSelectDate={(date) => setPeriod(date ? { kind: 'date', date } : currentMonth(today))}
-        />
-        <CategoryFilter chips={chips} selected={category} onSelect={setCategory} />
-        <TransactionList
-          transactions={visible}
-          todayISO={today}
-          emptyKey={emptyKey}
-          accountLabels={accountLabels}
-          onEdit={(txn) => setEditor(txn)}
-        />
-          </>
+          <TransactionsScreen
+            transactions={transactions}
+            savings={savings}
+            savingContributions={savingContributions}
+            debts={debts}
+            debtSummary={debtSummary}
+            accountLabels={accountLabels}
+            todayISO={today}
+            onEditTransaction={(txn) => setEditor(txn)}
+            onOpenSaving={(saving) => setOpenSavingId(saving.id)}
+          />
         )}
       </main>
 
