@@ -1,5 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react';
 import PeriodBar from './PeriodBar';
+import ViewTabs from './ViewTabs';
+import InsightsPanel from './InsightsPanel';
 import Summary from './Summary';
 import SpendingTrendMessage from './SpendingTrendMessage';
 import SpendingChart from './SpendingChart';
@@ -12,6 +14,13 @@ import {
   unallocated as computeUnallocated
 } from '../allocations/allocations';
 import { pageSlice } from './pagination';
+import { applyView, ALL_VIEW, ALL_VIEW_ID, type View } from './views';
+import {
+  loadViews,
+  saveViews,
+  loadInsightsOpen,
+  saveInsightsOpen
+} from '../../config/viewPrefs';
 import { useI18n } from '../../i18n/context';
 import { computeSpendingTrend } from './spendingTrend';
 import { applyCategoryFilter, deriveCategories, sameChip, type CategoryChip } from './categoryChips';
@@ -20,6 +29,8 @@ import { availableMonths, currentMonth, filterByPeriod, type Period } from '../.
 import type { AllDebtsSummary } from '../debts/debt';
 import type { Allocation, Debt, Saving, SavingContribution, Transaction } from '../../types';
 import type { TranslationKey } from '../../i18n/translations';
+
+const ViewManager = lazy(() => import('./ViewManager'));
 
 export interface TransactionsScreenProps {
   transactions: Transaction[];
@@ -53,17 +64,31 @@ export default function TransactionsScreen({
   const { t } = useI18n();
   const [period, setPeriodState] = useState<Period>(() => currentMonth(todayISO));
   const [category, setCategory] = useState<CategoryChip | null>(null);
-  // Reset to one page whenever the scope changes - see setPeriod and
-  // selectCategory below.
+  // Reset to one page whenever the scope changes - see setPeriod,
+  // selectCategory and selectView below.
   const [pages, setPages] = useState(1);
+  const [views, setViews] = useState<View[]>(() => loadViews());
+  // Not persisted: a remembered filter that hides data is a footgun, and this
+  // one would survive a restart with no obvious cause.
+  const [activeViewId, setActiveViewId] = useState<string>(ALL_VIEW_ID);
+  const [managerOpen, setManagerOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(() => loadInsightsOpen());
 
-  // One period drives Summary, the category chips, and the list, so there is
-  // never more than one time filter in play.
+  const activeView = useMemo(
+    () => views.find((v) => v.id === activeViewId) ?? ALL_VIEW,
+    [views, activeViewId]
+  );
+
+  // One period drives everything below it, and the view narrows that further,
+  // so the screen reads period -> view -> chip -> page with no cross-talk.
   const periodScoped = useMemo(() => filterByPeriod(transactions, period), [transactions, period]);
-  const chips = useMemo(() => deriveCategories(periodScoped), [periodScoped]);
-  const visible = useMemo(() => applyCategoryFilter(periodScoped, category), [periodScoped, category]);
+  const viewScoped = useMemo(() => applyView(periodScoped, activeView), [periodScoped, activeView]);
+  const chips = useMemo(() => deriveCategories(viewScoped), [viewScoped]);
+  const visible = useMemo(() => applyCategoryFilter(viewScoped, category), [viewScoped, category]);
   const page = useMemo(() => pageSlice(visible, pages), [visible, pages]);
-  const totals = useMemo(() => computeTotals(periodScoped), [periodScoped]);
+  const totals = useMemo(() => computeTotals(viewScoped), [viewScoped]);
+  // All-time and unscoped: it is the one figure on the screen the view must not
+  // touch, since a balance narrowed to three categories is not a balance.
   const balance = useMemo(() => computeBalance(transactions), [transactions]);
 
   // Deliberately not period-scoped: this always compares this calendar month
@@ -76,7 +101,14 @@ export default function TransactionsScreen({
     return computeUnallocated(balance, rows);
   }, [allocations, transactions, todayISO, balance]);
 
-  const trend = useMemo(() => computeSpendingTrend(transactions, todayISO), [transactions, todayISO]);
+  // Scoped to the view like the totals it sits above: a global sentence over
+  // view-scoped numbers would describe a different set of transactions. Still
+  // reads full history, not the period - it compares this calendar month with
+  // last, whatever period is displayed.
+  const trend = useMemo(
+    () => computeSpendingTrend(applyView(transactions, activeView), todayISO),
+    [transactions, activeView, todayISO]
+  );
   const months = useMemo(() => availableMonths(transactions, todayISO), [transactions, todayISO]);
 
   /**
@@ -108,17 +140,57 @@ export default function TransactionsScreen({
     setCategory(next);
   }, []);
 
+  /**
+   * Switching view clears the chip for the same reason changing period does:
+   * the chip may not exist inside the new view. Synchronous rather than an
+   * effect, so no frame renders the broken combination.
+   */
+  const selectView = useCallback((id: string) => {
+    setPages(1);
+    setCategory(null);
+    setActiveViewId(id);
+  }, []);
+
+  /**
+   * One writer for the array, so the persisted copy and the active tab can
+   * never disagree - deleting the active view falls back to All in the same
+   * step that saves.
+   */
+  const persistViews = useCallback((next: View[]) => {
+    setViews(next);
+    saveViews(next);
+    setActiveViewId((current) =>
+      current === ALL_VIEW_ID || next.some((v) => v.id === current) ? current : ALL_VIEW_ID
+    );
+  }, []);
+
+  const toggleInsights = useCallback((open: boolean) => {
+    setInsightsOpen(open);
+    saveInsightsOpen(open);
+  }, []);
+
+  // The view case sits above the period cases because it is the more specific
+  // reason the list is empty - telling someone "nothing this month" while they
+  // look through a three-category view sends them to change the wrong control.
   const emptyKey: TranslationKey = category
     ? 'emptyCategoryFiltered'
     : transactions.length === 0
       ? 'emptyTransactions'
-      : period.kind === 'date'
-        ? 'emptyDayFiltered'
-        : 'emptyPeriodFiltered';
+      : activeViewId !== ALL_VIEW_ID
+        ? 'emptyViewFiltered'
+        : period.kind === 'date'
+          ? 'emptyDayFiltered'
+          : 'emptyPeriodFiltered';
 
   return (
     <>
       <PeriodBar period={period} todayISO={todayISO} months={months} onChange={setPeriod} />
+      <ViewTabs
+        views={views}
+        activeId={activeViewId}
+        onSelect={selectView}
+        onManage={() => setManagerOpen(true)}
+      />
       <Summary
         balance={balance}
         income={totals.income}
@@ -128,8 +200,8 @@ export default function TransactionsScreen({
         debt={debts.length > 0 ? debtSummary : null}
         unallocated={unallocatedAmount}
       />
-      {/* Above savings goals: "what can I spend today" is the question the app
-          is opened to answer; a goal is something checked on. */}
+      {/* Outside the disclosure: it is the only way to create an envelope, and
+          burying a feature's sole entry point would undo that decision. */}
       <AllocationsStrip
         allocations={allocations}
         transactions={transactions}
@@ -137,19 +209,22 @@ export default function TransactionsScreen({
         onOpen={onOpenAllocation}
         onAdd={onAddAllocation}
       />
-      <SavingsStrip savings={savings} contributions={savingContributions} onOpen={onOpenSaving} />
-      <SpendingTrendMessage trend={trend} />
-      {/* The heatmap gets full history on purpose - its shading percentiles
-          need the whole range, and it is the navigator for picking a date.
-          The breakdown gets the period, since that is the question it
-          answers. */}
-      <SpendingChart
-        transactions={transactions}
-        periodTransactions={periodScoped}
-        todayISO={todayISO}
-        selectedDate={period.kind === 'date' ? period.date : null}
-        onSelectDate={(date) => setPeriod(date ? { kind: 'date', date } : currentMonth(todayISO))}
-      />
+
+      <InsightsPanel open={insightsOpen} onToggle={toggleInsights}>
+        <SavingsStrip savings={savings} contributions={savingContributions} onOpen={onOpenSaving} />
+        <SpendingTrendMessage trend={trend} />
+        {/* The heatmap keeps full history - its shading percentiles need the
+            whole range. The breakdown gets the view-scoped period, since that
+            is the question it answers. */}
+        <SpendingChart
+          transactions={transactions}
+          periodTransactions={viewScoped}
+          todayISO={todayISO}
+          selectedDate={period.kind === 'date' ? period.date : null}
+          onSelectDate={(date) => setPeriod(date ? { kind: 'date', date } : currentMonth(todayISO))}
+        />
+      </InsightsPanel>
+
       <CategoryFilter chips={chips} selected={category} onSelect={selectCategory} />
       <TransactionList
         transactions={page.rows}
@@ -166,6 +241,22 @@ export default function TransactionsScreen({
         >
           {t('loadMoreRemaining', { count: page.remaining })}
         </button>
+      )}
+
+      {managerOpen && (
+        <div className="modal" role="dialog" aria-modal="true" aria-label={t('viewManageTitle')}>
+          <div className="modal__backdrop" onClick={() => setManagerOpen(false)} />
+          <div className="modal__panel">
+            <Suspense fallback={<p className="modal__loading">{t('loadingForm')}</p>}>
+              <ViewManager
+                views={views}
+                transactions={transactions}
+                onSave={persistViews}
+                onClose={() => setManagerOpen(false)}
+              />
+            </Suspense>
+          </div>
+        </div>
       )}
     </>
   );
