@@ -7,6 +7,10 @@ import CategoryFilter from './CategoryFilter';
 import TransactionList from './TransactionList';
 import SavingsStrip from '../savings/SavingsStrip';
 import AllocationsStrip from '../allocations/AllocationsStrip';
+import {
+  summarizeAllocations,
+  unallocated as computeUnallocated
+} from '../allocations/allocations';
 import { pageSlice } from './pagination';
 import { useI18n } from '../../i18n/context';
 import { computeSpendingTrend } from './spendingTrend';
@@ -64,6 +68,14 @@ export default function TransactionsScreen({
 
   // Deliberately not period-scoped: this always compares this calendar month
   // with last, so it means the same thing wherever the user has navigated.
+  // Null when there are no envelopes, so a user not using the feature sees the
+  // Summary card exactly as it was.
+  const unallocatedAmount = useMemo(() => {
+    if (allocations.length === 0) return null;
+    const rows = summarizeAllocations(allocations, transactions, todayISO);
+    return computeUnallocated(balance, rows);
+  }, [allocations, transactions, todayISO, balance]);
+
   const trend = useMemo(() => computeSpendingTrend(transactions, todayISO), [transactions, todayISO]);
   const months = useMemo(() => availableMonths(transactions, todayISO), [transactions, todayISO]);
 
@@ -114,6 +126,7 @@ export default function TransactionsScreen({
         period={period}
         todayISO={todayISO}
         debt={debts.length > 0 ? debtSummary : null}
+        unallocated={unallocatedAmount}
       />
       {/* Above savings goals: "what can I spend today" is the question the app
           is opened to answer; a goal is something checked on. */}

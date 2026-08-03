@@ -14,9 +14,11 @@ interface SummaryProps {
   todayISO: string;
   /** Null when no debts exist; the card is then not rendered at all. */
   debt: AllDebtsSummary | null;
+  /** Null when no envelopes exist; the line is then not rendered at all. */
+  unallocated: number | null;
 }
 
-function Summary({ balance, income, expense, period, todayISO, debt }: SummaryProps) {
+function Summary({ balance, income, expense, period, todayISO, debt, unallocated }: SummaryProps) {
   const { t, locale } = useI18n();
 
   function periodName(): string {
@@ -95,6 +97,14 @@ function Summary({ balance, income, expense, period, todayISO, debt }: SummaryPr
         </article>
       )}
 
+      {/* Balance minus what the envelopes still hold. Goes negative when they
+          promise more than is held, which is the warning worth having. */}
+      {unallocated !== null && (
+        <p className={`summary__unallocated ${unallocated < 0 ? 'is-over' : ''}`}>
+          <span>{t('allocationUnallocated')}</span>
+          <span>{formatIDR(unallocated)}</span>
+        </p>
+      )}
     </section>
   );
 }

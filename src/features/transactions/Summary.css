@@ -62,3 +62,15 @@
 .debt-card__bar { display: block; height: 4px; border-radius: var(--radius-pill); background: var(--line); overflow: hidden; }
 .debt-card__fill { display: block; height: 100%; background: var(--accent-strong); }
 .debt-card__meta { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Balance minus what the envelopes still hold. Only rendered when at least
+   one allocation exists. */
+.summary__unallocated {
+  display: flex; justify-content: space-between; align-items: baseline;
+  gap: var(--space-3); margin: var(--space-3) 0 0;
+  font-size: 0.8rem; color: var(--muted);
+}
+.summary__unallocated span:last-child {
+  font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.summary__unallocated.is-over span:last-child { color: var(--expense); }
