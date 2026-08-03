@@ -1,5 +1,6 @@
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import { useI18n } from '../../i18n/context';
+import Icon from '../../components/Icon';
 import { currentMonth, monthKey, monthName, previousMonth, type Period } from '../../utils/period';
 import './PeriodBar.css';
 
@@ -13,6 +14,7 @@ interface PeriodBarProps {
 
 function PeriodBar({ period, todayISO, months, onChange }: PeriodBarProps) {
   const { t, locale } = useI18n();
+  const dayRef = useRef<HTMLInputElement>(null);
   const thisMonth = currentMonth(todayISO);
   const lastMonth = previousMonth(todayISO);
 
@@ -62,26 +64,61 @@ function PeriodBar({ period, todayISO, months, onChange }: PeriodBarProps) {
         ))}
       </select>
 
-      {/* The only way to select a single day now that the heatmap sits inside
-          a collapsed panel. Typing a date also beats hunting for a cell when
-          the day is in a month that is not on screen. */}
-      <input
-        type="date"
-        className="period-bar__day"
-        value={period.kind === 'date' ? period.date : ''}
-        max={todayISO}
-        aria-label={t('periodPickDay')}
-        onChange={(e) =>
-          onChange(
-            e.target.value
-              ? { kind: 'date', date: e.target.value }
-              : // Clearing returns to the month that day sat in, not today's -
-                // the user lands where they were looking. selectedMonth already
-                // computes exactly this value for the dropdown.
-                { kind: 'month', key: selectedMonth }
-          )
-        }
-      />
+      {/* Day selection, and the only route to it now that the heatmap sits
+          inside a collapsed panel.
+
+          Icon only: the chosen day is already spelled out on the summary card
+          just below, so a control repeating it in dd/mm/yyyy earns none of the
+          width it costs in this row. The native input is stretched over the
+          icon at zero opacity, and the click opens the platform picker through
+          showPicker() - a bare date input only opens from its own indicator,
+          which is exactly the part being hidden. */}
+      <span
+        className={`period-bar__day ${period.kind === 'date' ? 'active' : ''}`}
+        onClick={() => {
+          const el = dayRef.current;
+          if (!el) return;
+          try {
+            el.showPicker();
+          } catch {
+            // Older browsers, or a picker already open - focusing still lets
+            // the field be typed into.
+            el.focus();
+          }
+        }}
+      >
+        <Icon name="calendar" />
+        <input
+          ref={dayRef}
+          type="date"
+          value={period.kind === 'date' ? period.date : ''}
+          max={todayISO}
+          aria-label={t('periodPickDay')}
+          onChange={(e) =>
+            onChange(
+              e.target.value
+                ? { kind: 'date', date: e.target.value }
+                : { kind: 'month', key: selectedMonth }
+            )
+          }
+        />
+      </span>
+
+      {/* Only while a day is active. Without it the day could not be cleared:
+          the input's own clear affordance is hidden, and re-picking the same
+          month from the dropdown fires no change event. Returns to the month
+          that day sat in, so the user lands where they were looking. */}
+      {period.kind === 'date' && (
+        <button
+          type="button"
+          className="period-bar__day-clear"
+          aria-label={t('periodClearDay')}
+          title={t('periodClearDay')}
+          onClick={() => onChange({ kind: 'month', key: selectedMonth })}
+        >
+          ×
+        </button>
+      )}
     </section>
   );
 }

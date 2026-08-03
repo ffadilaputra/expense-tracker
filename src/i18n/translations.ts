@@ -24,6 +24,7 @@ export const en = {
   periodThisMonth: 'This month',
   periodPickMonth: 'Pick a month',
   periodPickDay: 'Pick a day',
+  periodClearDay: 'Clear the selected day',
   periodOnDate: 'On {date}',
 
   // Category filter
@@ -326,6 +327,7 @@ export const id: Record<TranslationKey, string> = {
   periodThisMonth: 'Bulan ini',
   periodPickMonth: 'Pilih bulan',
   periodPickDay: 'Pilih hari',
+  periodClearDay: 'Hapus hari yang dipilih',
   periodOnDate: 'Pada {date}',
 
   categoryFilterLabel: 'Saring menurut kategori',
