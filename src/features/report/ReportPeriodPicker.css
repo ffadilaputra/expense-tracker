@@ -1,0 +1,25 @@
+/* Report period picker */
+.report-period {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4) 0;
+}
+.report-period__modes {
+  display: flex; gap: var(--space-2);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: var(--space-1);
+}
+.report-period__mode {
+  flex: 1; border: none; background: transparent; color: var(--muted);
+  padding: var(--space-2); border-radius: var(--radius-sm);
+  font-size: 0.85rem; min-height: 40px;
+  transition: background-color var(--ease), color var(--ease);
+}
+.report-period__mode.active {
+  background: var(--accent); color: var(--on-accent); font-weight: 600;
+}
+.report-period__value {
+  width: 100%; min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface); color: var(--text); font: inherit;
+}
