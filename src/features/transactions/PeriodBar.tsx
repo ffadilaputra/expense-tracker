@@ -1,15 +1,21 @@
 import { memo, useRef } from 'react';
 import { useI18n } from '../../i18n/context';
 import Icon from '../../components/Icon';
-import { currentMonth, monthKey, monthName, previousMonth, type Period } from '../../utils/period';
+import {
+  currentMonth,
+  monthKey,
+  monthName,
+  previousMonth,
+  type MonthOrDatePeriod
+} from '../../utils/period';
 import './PeriodBar.css';
 
 interface PeriodBarProps {
-  period: Period;
+  period: MonthOrDatePeriod;
   todayISO: string;
   /** Month keys the user can navigate to, newest first. */
   months: string[];
-  onChange: (period: Period) => void;
+  onChange: (period: MonthOrDatePeriod) => void;
 }
 
 function PeriodBar({ period, todayISO, months, onChange }: PeriodBarProps) {
