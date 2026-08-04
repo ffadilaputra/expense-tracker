@@ -4,7 +4,6 @@ import { useToast } from '../../components/Toast';
 import { formatIDR } from '../../utils/money';
 import ReportPeriodPicker from './ReportPeriodPicker';
 import TrendChart from './TrendChart';
-import SpendingDoughnut from '../transactions/SpendingDoughnut';
 import { buildReport } from './reportData';
 import { periodSlug } from './granularity';
 import { OTHER } from '../transactions/categoryBreakdown';
@@ -13,7 +12,6 @@ import {
   availableMonths,
   availableYears,
   currentMonth,
-  filterByPeriod,
   monthName,
   type Period
 } from '../../utils/period';
@@ -43,10 +41,6 @@ export default function ReportScreen({
     () => buildReport(transactions, period, locale),
     [transactions, period, locale]
   );
-
-  // The doughnut takes raw transactions and runs buildBreakdown itself, so it
-  // gets the scoped list rather than report.breakdown.
-  const scoped = useMemo(() => filterByPeriod(transactions, period), [transactions, period]);
 
   function categoryName(category: string): string {
     if (category === OTHER) return t('breakdownOther');
@@ -154,8 +148,6 @@ export default function ReportScreen({
         <>
           {report.buckets.length > 0 && <TrendChart buckets={report.buckets} />}
 
-          <SpendingDoughnut transactions={scoped} />
-
           {report.breakdown.segments.length > 0 && (
             <section className="report-table" aria-label={t('reportCategoryTable')}>
               <h2 className="report-table__title">{t('reportCategoryTable')}</h2>
@@ -172,7 +164,7 @@ export default function ReportScreen({
                     <tr key={segment.category}>
                       <td>
                         <span
-                          className={`report-table__swatch doughnut__swatch--${segment.slot < 0 ? 'other' : segment.slot}`}
+                          className={`report-table__swatch report-table__swatch--${segment.slot < 0 ? 'other' : segment.slot}`}
                           aria-hidden="true"
                         />
                         {categoryName(segment.category)}

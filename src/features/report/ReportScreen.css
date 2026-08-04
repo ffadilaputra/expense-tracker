@@ -37,3 +37,13 @@
   display: inline-block; width: 10px; height: 10px; border-radius: 3px;
   margin-right: var(--space-2); vertical-align: baseline;
 }
+/* Same slot -> hue mapping as the spending doughnut, restated here so the
+   table carries its own colours rather than leaning on that component's
+   stylesheet being loaded. */
+.report-table__swatch--0 { background: var(--cat-0); }
+.report-table__swatch--1 { background: var(--cat-1); }
+.report-table__swatch--2 { background: var(--cat-2); }
+.report-table__swatch--3 { background: var(--cat-3); }
+.report-table__swatch--4 { background: var(--cat-4); }
+.report-table__swatch--5 { background: var(--cat-5); }
+.report-table__swatch--other { background: var(--cat-other); }
