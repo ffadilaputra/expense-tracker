@@ -379,7 +379,13 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
       );
     }
     if (tab === 'report') {
-      return <ReportScreen transactions={transactions} todayISO={today} />;
+      return (
+        <ReportScreen
+          transactions={transactions}
+          accountLabels={accountLabels}
+          todayISO={today}
+        />
+      );
     }
     return (
       <SavingsScreen

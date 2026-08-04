@@ -1,10 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../../i18n/context';
+import { useToast } from '../../components/Toast';
 import { formatIDR } from '../../utils/money';
 import ReportPeriodPicker from './ReportPeriodPicker';
 import TrendChart from './TrendChart';
 import SpendingDoughnut from '../transactions/SpendingDoughnut';
 import { buildReport } from './reportData';
+import { periodSlug } from './granularity';
 import { OTHER } from '../transactions/categoryBreakdown';
 import { UNCATEGORIZED } from '../transactions/categoryChips';
 import {
@@ -12,6 +14,7 @@ import {
   availableYears,
   currentMonth,
   filterByPeriod,
+  monthName,
   type Period
 } from '../../utils/period';
 import type { Transaction } from '../../types';
@@ -19,10 +22,16 @@ import './ReportScreen.css';
 
 export interface ReportScreenProps {
   transactions: Transaction[];
+  /** accountId -> display name, built once by AppShell. */
+  accountLabels: Map<string, string>;
   todayISO: string;
 }
 
-export default function ReportScreen({ transactions, todayISO }: ReportScreenProps) {
+export default function ReportScreen({
+  transactions,
+  accountLabels,
+  todayISO
+}: ReportScreenProps) {
   const { t, locale } = useI18n();
   // Opens on the current month rather than the current year: it is the scope
   // the rest of the app defaults to, so the two screens agree on first sight.
@@ -44,6 +53,67 @@ export default function ReportScreen({ transactions, todayISO }: ReportScreenPro
     if (category === UNCATEGORIZED) return t('uncategorized');
     return category;
   }
+
+  function periodLabel(): string {
+    if (period.kind === 'year') return period.year;
+    if (period.kind === 'month') return monthName(period.key, locale);
+    return period.date;
+  }
+
+  const toast = useToast();
+  const [exporting, setExporting] = useState(false);
+
+  // The service worker caches lazily-loaded chunks only after they have been
+  // fetched (public/sw.js is network-first with runtime caching), so a
+  // first-ever export attempted offline would fail. Warming it on mount means
+  // the chunk is almost always present by the time anyone taps Export.
+  useEffect(() => {
+    import('./pdf').catch(() => {});
+  }, []);
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const css = getComputedStyle(document.documentElement);
+      const { exportReportPdf } = await import('./pdf');
+      await exportReportPdf({
+        data: report,
+        accountLabels,
+        categoryName,
+        filename: `oeank-report-${periodSlug(period)}.pdf`,
+        palette: {
+          categories: [0, 1, 2, 3, 4, 5].map((i) => css.getPropertyValue(`--cat-${i}`)),
+          other: css.getPropertyValue('--cat-other'),
+          income: css.getPropertyValue('--income'),
+          expense: css.getPropertyValue('--expense')
+        },
+        strings: {
+          appTitle: t('appTitle'),
+          periodLabel: periodLabel(),
+          generatedOn: t('pdfGeneratedOn', { date: todayISO }),
+          income: t('incomeLabel'),
+          expense: t('expenseLabel'),
+          net: t('reportNetLabel'),
+          trendTitle: t('reportTrendTitle'),
+          byCategory: t('reportCategoryTable'),
+          transactions: t('pdfTransactions'),
+          colDate: t('pdfColDate'),
+          colCategory: t('pdfColCategory'),
+          colNote: t('pdfColNote'),
+          colAccount: t('pdfColAccount'),
+          colAmount: t('pdfColAmount'),
+          colShare: t('pdfColShare'),
+          pageOf: (page, total) => t('pdfPageOf', { page, total })
+        }
+      });
+    } catch {
+      toast.show({ message: t('reportExportFailed'), tone: 'error' });
+    } finally {
+      setExporting(false);
+    }
+    // categoryName and periodLabel close over t/locale/period, which are listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [report, accountLabels, period, locale, todayISO, t, toast]);
 
   const empty = report.rows.length === 0;
 
@@ -115,6 +185,15 @@ export default function ReportScreen({ transactions, todayISO }: ReportScreenPro
               </table>
             </section>
           )}
+
+          <button
+            type="button"
+            className="btn btn--primary report__export"
+            onClick={handleExport}
+            disabled={exporting}
+          >
+            {exporting ? t('reportExporting') : t('reportExportPdf')}
+          </button>
         </>
       )}
     </section>

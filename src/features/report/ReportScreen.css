@@ -31,6 +31,8 @@
   padding: var(--space-2); border-bottom: 1px solid var(--line);
 }
 .report-table__num { font-variant-numeric: tabular-nums; }
+.report__export { width: 100%; min-height: 48px; }
+
 .report-table__swatch {
   display: inline-block; width: 10px; height: 10px; border-radius: 3px;
   margin-right: var(--space-2); vertical-align: baseline;
