@@ -31,6 +31,7 @@ import './styles/modal.css';
 const AccountsScreen = lazy(() => import('./features/accounts/AccountsScreen'));
 const DebtsScreen = lazy(() => import('./features/debts/DebtsScreen'));
 const SavingsScreen = lazy(() => import('./features/savings/SavingsScreen'));
+const ReportScreen = lazy(() => import('./features/report/ReportScreen'));
 const TransactionForm = lazy(() => import('./features/transactions/TransactionForm'));
 const AccountForm = lazy(() => import('./features/accounts/AccountForm'));
 const TransferForm = lazy(() => import('./features/accounts/TransferForm'));
@@ -376,6 +377,9 @@ export default function AppShell({ onChangeSheet }: AppShellProps) {
           onOpen={(debt) => setOpenDebtId(debt.id)}
         />
       );
+    }
+    if (tab === 'report') {
+      return <ReportScreen transactions={transactions} todayISO={today} />;
     }
     return (
       <SavingsScreen
