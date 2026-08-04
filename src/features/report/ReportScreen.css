@@ -1,0 +1,39 @@
+/* Report screen */
+.report { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.report-totals {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2);
+}
+.report-totals__cell {
+  display: flex; flex-direction: column; gap: var(--space-1);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: var(--space-3);
+  min-width: 0;
+}
+.report-totals__label { font-size: 0.7rem; color: var(--muted); }
+.report-totals__value {
+  font-size: 0.95rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em; overflow-wrap: anywhere;
+}
+.report-totals__value--income { color: var(--income); }
+.report-totals__value--expense { color: var(--expense); }
+.report-totals__value.is-negative { color: var(--expense); }
+
+.report-table { display: flex; flex-direction: column; gap: var(--space-3); }
+.report-table__title { margin: 0; font-size: 0.95rem; font-weight: 600; }
+.report-table__grid { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.report-table__grid th {
+  text-align: left; font-size: 0.7rem; font-weight: 500; color: var(--muted);
+  padding: var(--space-2); border-bottom: 1px solid var(--line);
+}
+.report-table__grid th:not(:first-child), .report-table__num { text-align: right; }
+.report-table__grid td {
+  padding: var(--space-2); border-bottom: 1px solid var(--line);
+}
+.report-table__num { font-variant-numeric: tabular-nums; }
+.report__export { width: 100%; min-height: 48px; }
+
+.report-table__swatch {
+  display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+  margin-right: var(--space-2); vertical-align: baseline;
+}

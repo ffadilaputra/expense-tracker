@@ -18,7 +18,12 @@ import { useI18n } from '../../i18n/context';
 import { computeSpendingTrend } from './spendingTrend';
 import { applyCategoryFilter, deriveCategories, sameChip, type CategoryChip } from './categoryChips';
 import { computeBalance, computeTotals } from '../../utils/summary';
-import { availableMonths, currentMonth, filterByPeriod, type Period } from '../../utils/period';
+import {
+  availableMonths,
+  currentMonth,
+  filterByPeriod,
+  type MonthOrDatePeriod
+} from '../../utils/period';
 import type { AllDebtsSummary } from '../debts/debt';
 import type { Allocation, Debt, Saving, SavingContribution, Transaction } from '../../types';
 import type { TranslationKey } from '../../i18n/translations';
@@ -53,7 +58,7 @@ export default function TransactionsScreen({
   onAddAllocation
 }: TransactionsScreenProps) {
   const { t } = useI18n();
-  const [period, setPeriodState] = useState<Period>(() => currentMonth(todayISO));
+  const [period, setPeriodState] = useState<MonthOrDatePeriod>(() => currentMonth(todayISO));
   const [category, setCategory] = useState<CategoryChip | null>(null);
   // Reset to one page whenever the scope changes - see setPeriod and
   // selectCategory below.
@@ -90,7 +95,7 @@ export default function TransactionsScreen({
    * than in an effect that would render one frame of the broken state.
    */
   const setPeriod = useCallback(
-    (next: Period) => {
+    (next: MonthOrDatePeriod) => {
       setPages(1);
       setPeriodState(next);
       setCategory((current) => {

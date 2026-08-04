@@ -3,7 +3,7 @@ import { useI18n } from '../i18n/context';
 import Icon from './Icon';
 import './BottomNav.css';
 
-export type Tab = 'transactions' | 'accounts' | 'debts' | 'savings';
+export type Tab = 'transactions' | 'accounts' | 'debts' | 'savings' | 'report';
 
 interface BottomNavProps {
   tab: Tab;
@@ -51,6 +51,15 @@ function BottomNav({ tab, onChange }: BottomNavProps) {
       >
         <Icon name="saving" />
         {t('navSavings')}
+      </button>
+      <button
+        type="button"
+        className={`bottom-nav__btn ${tab === 'report' ? 'active' : ''}`}
+        aria-pressed={tab === 'report'}
+        onClick={() => onChange('report')}
+      >
+        <Icon name="chart" />
+        {t('navReport')}
       </button>
       </div>
     </nav>

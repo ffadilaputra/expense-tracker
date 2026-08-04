@@ -1,5 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { availableMonths, currentMonth, monthName, previousMonth, filterByPeriod } from './period';
+import {
+  availableMonths,
+  availableYears,
+  currentMonth,
+  currentYear,
+  monthName,
+  previousMonth,
+  filterByPeriod,
+  yearKey
+} from './period';
 import type { Transaction } from '../types';
 
 function tx(partial: Partial<Transaction>): Transaction {
@@ -95,5 +104,55 @@ describe('filterByPeriod', () => {
 
   it('returns nothing for empty input', () => {
     expect(filterByPeriod([], { kind: 'month', key: '2026-07' })).toEqual([]);
+  });
+});
+
+describe('yearKey', () => {
+  it('takes the year of an ISO date', () => {
+    expect(yearKey('2026-08-04')).toBe('2026');
+  });
+});
+
+describe('currentYear', () => {
+  it('takes the year of the reference date', () => {
+    expect(currentYear('2026-08-04')).toEqual({ kind: 'year', year: '2026' });
+  });
+});
+
+describe('availableYears', () => {
+  it('lists every year holding a transaction, newest first', () => {
+    const txns = [tx({ date: '2024-06-15' }), tx({ date: '2026-04-02' }), tx({ date: '2025-01-01' })];
+    expect(availableYears(txns, '2026-08-01')).toEqual(['2026', '2025', '2024']);
+  });
+
+  it('always includes the current year so a new sheet is not empty', () => {
+    expect(availableYears([], '2026-08-01')).toEqual(['2026']);
+  });
+
+  it('does not repeat the current year when it also holds transactions', () => {
+    expect(availableYears([tx({ date: '2026-03-05' })], '2026-08-01')).toEqual(['2026']);
+  });
+
+  it('leaves out years in the future', () => {
+    const txns = [tx({ date: '2027-01-01' }), tx({ date: '2025-07-01' })];
+    expect(availableYears(txns, '2026-08-01')).toEqual(['2026', '2025']);
+  });
+});
+
+describe('filterByPeriod with a year', () => {
+  const txns = [
+    tx({ id: 'a', date: '2026-01-01' }),
+    tx({ id: 'b', date: '2026-12-31' }),
+    tx({ id: 'c', date: '2025-12-31' }),
+    tx({ id: 'd', date: '2027-01-01' })
+  ];
+
+  it('keeps only transactions in the year, across its boundaries', () => {
+    const kept = filterByPeriod(txns, { kind: 'year', year: '2026' });
+    expect(kept.map((t) => t.id)).toEqual(['a', 'b']);
+  });
+
+  it('returns nothing for a year with no transactions', () => {
+    expect(filterByPeriod(txns, { kind: 'year', year: '2020' })).toEqual([]);
   });
 });

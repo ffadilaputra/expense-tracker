@@ -130,6 +130,7 @@ Outputs to `dist/`. The app is a React 18 + TypeScript + Vite PWA (Progressive W
 - **Responsive**: works on phones, tablets, and desktop browsers
 - **Installable**: add to your home screen as a PWA
 - **Spending heatmap**: visual calendar view of spending by day
+- **Reports**: scope to a year, month or day, see totals and charts, export a PDF
 - **Envelope budgets**: daily, weekly, monthly or custom allocations per category, with rollover
 - **Bilingual**: English and Bahasa Indonesia
 - **Zero tracking**: no analytics, no third-party scripts

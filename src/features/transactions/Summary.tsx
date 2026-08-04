@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { useI18n } from '../../i18n/context';
 import { formatIDR } from '../../utils/money';
 import type { AllDebtsSummary } from '../debts/debt';
-import { currentMonth, monthName, previousMonth, type Period } from '../../utils/period';
+import { currentMonth, monthName, previousMonth, type MonthOrDatePeriod } from '../../utils/period';
 import './Summary.css';
 
 interface SummaryProps {
@@ -10,7 +10,7 @@ interface SummaryProps {
   balance: number;
   income: number;
   expense: number;
-  period: Period;
+  period: MonthOrDatePeriod;
   todayISO: string;
   /** Null when no debts exist; the card is then not rendered at all. */
   debt: AllDebtsSummary | null;

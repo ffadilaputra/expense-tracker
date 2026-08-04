@@ -17,11 +17,33 @@ export interface DatePeriod {
   date: string;
 }
 
-export type Period = MonthPeriod | DatePeriod;
+export interface YearPeriod {
+  kind: 'year';
+  /** 'YYYY' */
+  year: string;
+}
+
+export type Period = YearPeriod | MonthPeriod | DatePeriod;
+
+/**
+ * The two kinds the transactions screen works in. Years are reachable only from
+ * the report, so the components on that screen take this narrower type rather
+ * than carrying a branch for a period they are never handed.
+ */
+export type MonthOrDatePeriod = MonthPeriod | DatePeriod;
 
 /** Year+month prefix of an ISO date, e.g. "2026-07-25" -> "2026-07". */
 export function monthKey(isoDate: string): string {
   return isoDate.slice(0, 7);
+}
+
+/** Year prefix of an ISO date, e.g. "2026-07-25" -> "2026". */
+export function yearKey(isoDate: string): string {
+  return isoDate.slice(0, 4);
+}
+
+export function currentYear(todayISO: string): YearPeriod {
+  return { kind: 'year', year: yearKey(todayISO) };
 }
 
 export function currentMonth(todayISO: string): MonthPeriod {
@@ -67,7 +89,23 @@ export function availableMonths(txns: Transaction[], todayISO: string): string[]
   return [...keys].sort((a, b) => b.localeCompare(a));
 }
 
+/**
+ * Years the report can scope to: every year containing a transaction, plus the
+ * current one so a new sheet is not empty, newest first. Future years are left
+ * out for the same reason months are - a report is for what has happened.
+ */
+export function availableYears(txns: Transaction[], todayISO: string): string[] {
+  const thisYear = yearKey(todayISO);
+  const keys = new Set<string>([thisYear]);
+  for (const t of txns) {
+    const key = yearKey(t.date);
+    if (key <= thisYear) keys.add(key);
+  }
+  return [...keys].sort((a, b) => b.localeCompare(a));
+}
+
 export function filterByPeriod(txns: Transaction[], period: Period): Transaction[] {
   if (period.kind === 'date') return txns.filter((t) => t.date === period.date);
+  if (period.kind === 'year') return txns.filter((t) => yearKey(t.date) === period.year);
   return txns.filter((t) => monthKey(t.date) === period.key);
 }
