@@ -46,8 +46,14 @@ function addMonths(iso: string, months: number, anchorDay: number): string {
   return `${year}-${pad(month + 1)}-${pad(Math.min(anchorDay, lastDay))}`;
 }
 
-/** How many days one period spans. Monthly does not use this. */
-function intervalDays(allocation: Allocation): number {
+/**
+ * How many days one period spans. Monthly does not use this.
+ *
+ * Exported so a `days` envelope can be labelled with the same clamped interval
+ * its periods are cut on - a hand-typed 0 or 2.5 in the sheet must not let the
+ * card name one cadence while the bar measures another.
+ */
+export function intervalDays(allocation: Allocation): number {
   if (allocation.cadence === 'weekly') return 7;
   if (allocation.cadence === 'days') {
     const n = Math.floor(allocation.intervalDays ?? 1);
