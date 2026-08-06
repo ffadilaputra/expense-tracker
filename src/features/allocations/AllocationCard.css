@@ -30,3 +30,14 @@
 .alloc-card__meta {
   font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums;
 }
+
+/* Its own row under the figures. Set as a label rather than a second muted
+   sentence - stacked directly under .alloc-card__meta at the same size and
+   colour, it would read as a wrapped continuation of the progress line. Pulled
+   up tight against those figures because it qualifies them. */
+.alloc-card__cadence {
+  margin-top: calc(var(--space-2) * -1 + 2px);
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+  font-weight: 500; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}

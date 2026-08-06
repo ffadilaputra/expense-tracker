@@ -1,13 +1,21 @@
 import { memo } from 'react';
 import { useI18n } from '../../i18n/context';
 import { formatIDR } from '../../utils/money';
-import type { AllocationRow } from './allocations';
+import { intervalDays, type AllocationRow } from './allocations';
+import type { TranslationKey } from '../../i18n/translations';
 import './AllocationCard.css';
 
 interface AllocationCardProps {
   row: AllocationRow;
   onOpen: () => void;
 }
+
+/** `days` is missing on purpose - it needs its interval, so it is built below. */
+const CADENCE_KEYS: Record<'daily' | 'weekly' | 'monthly', TranslationKey> = {
+  daily: 'allocationCadenceDaily',
+  weekly: 'allocationCadenceWeekly',
+  monthly: 'allocationCadenceMonthly'
+};
 
 /**
  * Leads with `available` - the pot actually accumulated - and shows this
@@ -23,6 +31,13 @@ function AllocationCard({ row: { allocation, summary }, onOpen }: AllocationCard
     allocation.amount > 0
       ? Math.min(1, Math.max(0, summary.spentThisPeriod / allocation.amount))
       : 0;
+
+  // Says what the `{amount}` in the progress line is actually per, so two cards
+  // showing the same allowance are not read as the same budget.
+  const cadenceLabel =
+    allocation.cadence === 'days'
+      ? t('allocationCadenceEvery', { count: intervalDays(allocation) })
+      : t(CADENCE_KEYS[allocation.cadence]);
 
   return (
     <button
@@ -55,6 +70,8 @@ function AllocationCard({ row: { allocation, summary }, onOpen }: AllocationCard
           amount: formatIDR(allocation.amount)
         })}
       </span>
+
+      <span className="alloc-card__cadence">{cadenceLabel}</span>
     </button>
   );
 }

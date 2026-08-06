@@ -167,6 +167,9 @@ export const en = {
   allocationCadenceWeekly: 'Weekly',
   allocationCadenceMonthly: 'Monthly',
   allocationCadenceDays: 'Every N days',
+  // The card's version of allocationCadenceDays, with the interval filled in -
+  // a literal N reads as a placeholder outside the form's option list.
+  allocationCadenceEvery: 'Every {count} days',
   allocationClaimedBy: 'Claimed by {name}',
   allocationNoCategories: 'Pick at least one category.',
   allocationPeriodToday: 'Today',
@@ -486,6 +489,7 @@ export const id: Record<TranslationKey, string> = {
   allocationCadenceWeekly: 'Mingguan',
   allocationCadenceMonthly: 'Bulanan',
   allocationCadenceDays: 'Setiap N hari',
+  allocationCadenceEvery: 'Setiap {count} hari',
   allocationClaimedBy: 'Dipakai {name}',
   allocationNoCategories: 'Pilih minimal satu kategori.',
   allocationPeriodToday: 'Hari ini',
