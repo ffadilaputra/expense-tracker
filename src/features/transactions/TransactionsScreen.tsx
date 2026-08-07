@@ -13,6 +13,7 @@ import {
   unallocated as computeUnallocated
 } from '../allocations/allocations';
 import { pageSlice } from './pagination';
+import { sortNewestFirst } from './dateGroups';
 import { loadInsightsOpen, saveInsightsOpen } from '../../config/insightsPrefs';
 import { useI18n } from '../../i18n/context';
 import { computeSpendingTrend } from './spendingTrend';
@@ -70,7 +71,11 @@ export default function TransactionsScreen({
   const periodScoped = useMemo(() => filterByPeriod(transactions, period), [transactions, period]);
   const chips = useMemo(() => deriveCategories(periodScoped), [periodScoped]);
   const visible = useMemo(() => applyCategoryFilter(periodScoped, category), [periodScoped, category]);
-  const page = useMemo(() => pageSlice(visible, pages), [visible, pages]);
+  // Sorted before paging, not after: the store's order is the sheet's append
+  // order, so slicing it straight would fill page one with the oldest rows and
+  // leave today's entries behind "load more".
+  const ordered = useMemo(() => sortNewestFirst(visible), [visible]);
+  const page = useMemo(() => pageSlice(ordered, pages), [ordered, pages]);
   const totals = useMemo(() => computeTotals(periodScoped), [periodScoped]);
   const balance = useMemo(() => computeBalance(transactions), [transactions]);
 

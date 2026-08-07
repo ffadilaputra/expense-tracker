@@ -6,10 +6,31 @@ export interface DateGroup {
   items: Transaction[];
 }
 
+const desc = (a: string, b: string): number => (a < b ? 1 : a > b ? -1 : 0);
+
+/**
+ * Newest first: by calendar date, then by createdAt so the most recently
+ * entered transaction sits on top even when several share a date.
+ */
+export function compareNewestFirst(a: Transaction, b: Transaction): number {
+  return desc(a.date, b.date) || desc(a.createdAt, b.createdAt);
+}
+
+/**
+ * A copy of `txns` in display order.
+ *
+ * The store hands transactions over in sheet order, which is append order, so
+ * anything that takes a prefix of the list - paging above all - has to sort
+ * first or it takes the oldest rows. Grouping alone is not enough: it only
+ * orders what it is given.
+ */
+export function sortNewestFirst(txns: Transaction[]): Transaction[] {
+  return txns.slice().sort(compareNewestFirst);
+}
+
 /**
  * Group transactions by their calendar date. Groups are ordered newest date
- * first; within a group, rows are ordered by createdAt so the most recently
- * entered transaction sits on top even when several share a date.
+ * first, and rows within a group follow the same order.
  */
 export function groupByDate(txns: Transaction[]): DateGroup[] {
   const byDate = new Map<string, Transaction[]>();
@@ -19,11 +40,8 @@ export function groupByDate(txns: Transaction[]): DateGroup[] {
     else byDate.set(t.date, [t]);
   }
   return Array.from(byDate.entries())
-    .sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0))
-    .map(([date, items]) => ({
-      date,
-      items: items.slice().sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
-    }));
+    .sort((a, b) => desc(a[0], b[0]))
+    .map(([date, items]) => ({ date, items: sortNewestFirst(items) }));
 }
 
 /** Compares two ISO dates as "today", "yesterday", or neither. */

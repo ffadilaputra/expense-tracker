@@ -26,7 +26,8 @@ describe('shortDate', () => {
     expect(shortDate('2026-01-15', 'en')).toBe('Jan 15');
   });
 });
-import { groupByDate, relativeDay } from './dateGroups';
+import { groupByDate, relativeDay, sortNewestFirst } from './dateGroups';
+import { PAGE_SIZE, pageSlice } from './pagination';
 import type { Transaction } from '../../types';
 
 function tx(partial: Partial<Transaction>): Transaction {
@@ -47,6 +48,36 @@ describe('groupByDate', () => {
   });
   it('returns empty array for no transactions', () => {
     expect(groupByDate([])).toEqual([]);
+  });
+});
+
+describe('sortNewestFirst', () => {
+  it('orders by date descending, then createdAt descending', () => {
+    const a = tx({ id: 'a', date: '2026-07-24', createdAt: '2026-07-24T08:00:00.000Z' });
+    const b = tx({ id: 'b', date: '2026-07-25', createdAt: '2026-07-25T09:00:00.000Z' });
+    const c = tx({ id: 'c', date: '2026-07-25', createdAt: '2026-07-25T18:00:00.000Z' });
+    expect(sortNewestFirst([a, b, c]).map((t) => t.id)).toEqual(['c', 'b', 'a']);
+  });
+
+  it('does not mutate the input', () => {
+    const rows = [
+      tx({ id: 'old', date: '2026-07-01' }),
+      tx({ id: 'new', date: '2026-07-31' })
+    ];
+    sortNewestFirst(rows);
+    expect(rows.map((t) => t.id)).toEqual(['old', 'new']);
+  });
+
+  // The store hands transactions over in sheet order, which is append order -
+  // oldest first. Paging that list unsorted put the oldest rows on page one and
+  // hid today's entries behind "load more".
+  it('puts the newest rows on the first page', () => {
+    const oldestFirst = Array.from({ length: PAGE_SIZE + 10 }, (_, i) =>
+      tx({ id: `t${i}`, date: `2026-07-${String(i + 1).padStart(2, '0')}` })
+    );
+    const page = pageSlice(sortNewestFirst(oldestFirst), 1);
+    expect(page.rows[0].id).toBe(`t${PAGE_SIZE + 9}`);
+    expect(page.rows.map((t) => t.id)).not.toContain('t0');
   });
 });
 
